@@ -383,7 +383,7 @@ async def nodes():
                     <span class="metric-label">抖动</span>
                 </div>
                 <div class="metric-box">
-                    <span class="metric-value">{node.bandwidth_mbps:.0f if node.bandwidth_mbps is not None else '--'}</span>
+                    <span class="metric-value">{("%.0f" % node.bandwidth_mbps) if node.bandwidth_mbps else "--"}</span>
                     <span class="metric-unit">Mbps</span>
                     <span class="metric-label">带宽</span>
                 </div>
