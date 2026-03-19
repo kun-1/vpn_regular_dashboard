@@ -277,19 +277,35 @@ async def index(request: Request):
 @app.get("/api/current-node")
 async def current_node():
     node_name = switcher.get_current_node()
-    delay = MihomoAPI.test_delay(switcher.proxy_group)
-    switcher.latency_history.append({"time": time.time(), "delay": delay})
     
+    # Get cached metrics if available
     cached = switcher.node_metrics.get(node_name)
+    
+    if cached:
+        # Use cached metrics
+        delay = cached.delay_ms
+        packet_loss = cached.packet_loss
+        jitter = cached.jitter_ms
+        score = cached.overall_score
+        status = cached.status
+    else:
+        # Node not evaluated yet, test now
+        delay = MihomoAPI.test_delay(switcher.proxy_group)
+        switcher.latency_history.append({"time": time.time(), "delay": delay})
+        packet_loss = 0
+        jitter = 0
+        score = 0
+        status = "evaluating"
     
     return {
         "node": node_name,
-        "delay": delay if delay < 9999 else None,
-        "packet_loss": cached.packet_loss if cached else 0,
-        "jitter": cached.jitter_ms if cached else 0,
-        "score": cached.overall_score if cached else 0,
-        "status": cached.status if cached else "unknown",
-        "auto_mode": switcher.auto_switch_enabled
+        "delay": delay if delay < 9999 else 0,
+        "packet_loss": packet_loss,
+        "jitter": jitter,
+        "score": score,
+        "status": status,
+        "auto_mode": switcher.auto_switch_enabled,
+        "evaluated": cached is not None
     }
 
 
