@@ -101,8 +101,7 @@ class NetworkTester:
             )
             if result.returncode == 0:
                 # Parse output like: "Download: 123.45 Mbit/s"
-                for line in result.stdout.split('
-'):
+                for line in result.stdout.split('\n'):
                     if 'Download:' in line:
                         speed_str = line.split(':')[1].strip().split()[0]
                         return float(speed_str)
