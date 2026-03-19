@@ -1,0 +1,13 @@
+[project]
+name = "vpn-auto-switch"
+version = "0.1.0"
+description = "Mihomo VPN auto switcher"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+vpn-switch = "vpn_auto_switch.switcher:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
