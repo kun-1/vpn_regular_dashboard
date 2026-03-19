@@ -40,6 +40,7 @@ class NodeMetrics:
     delay_ms: float
     packet_loss: float
     jitter_ms: float
+    bandwidth_mbps: Optional[float]
     stability_score: float
     alive: bool
     overall_score: float
@@ -88,6 +89,26 @@ class MihomoAPI:
 
 class NetworkTester:
     """Network testing with all metrics"""
+    
+    @staticmethod
+    def test_bandwidth() -> Optional[float]:
+        """Test bandwidth using speedtest-cli if available"""
+        try:
+            # Try to use speedtest-cli
+            result = subprocess.run(
+                ["speedtest-cli", "--simple", "--timeout", "10"],
+                capture_output=True, text=True, timeout=30
+            )
+            if result.returncode == 0:
+                # Parse output like: "Download: 123.45 Mbit/s"
+                for line in result.stdout.split('
+'):
+                    if 'Download:' in line:
+                        speed_str = line.split(':')[1].strip().split()[0]
+                        return float(speed_str)
+        except:
+            pass
+        return None
     
     @staticmethod
     def ping_test(target: str = "8.8.8.8", count: int = 10) -> tuple:
@@ -159,18 +180,29 @@ class VPNSwitcher:
         mihomo_delay = MihomoAPI.test_delay(self.proxy_group)
         final_delay = min(delay, mihomo_delay) if mihomo_delay < 9999 else delay
         
-        # Calculate scores
+        # Test bandwidth
+        bandwidth = NetworkTester.test_bandwidth()
+        
+        # Calculate scores (updated weights with bandwidth)
         stability = max(0, 100 - loss * 10)
         delay_score = max(0, 100 - final_delay / 5)
         loss_score = max(0, 100 - loss * 20)
         jitter_score = max(0, 100 - jitter * 2)
-        overall = 0.4 * delay_score + 0.3 * loss_score + 0.2 * jitter_score + 0.1 * stability
+        bandwidth_score = min(100, bandwidth * 2) if bandwidth else 50  # 100 Mbps = 100 score
+        
+        # Updated weights: delay 30%, loss 25%, jitter 15%, bandwidth 20%, stability 10%
+        overall = (0.30 * delay_score + 
+                   0.25 * loss_score + 
+                   0.15 * jitter_score + 
+                   0.20 * bandwidth_score +
+                   0.10 * stability)
         
         return NodeMetrics(
             name=node_name,
             delay_ms=final_delay,
             packet_loss=loss,
             jitter_ms=jitter,
+            bandwidth_mbps=bandwidth,
             stability_score=stability,
             alive=loss < 50,
             overall_score=overall
@@ -350,6 +382,11 @@ async def nodes():
                     <span class="metric-value {'bad' if node.jitter_ms > 50 else 'good'}">{node.jitter_ms:.1f}</span>
                     <span class="metric-unit">ms</span>
                     <span class="metric-label">抖动</span>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-value">{node.bandwidth_mbps:.0f if node.bandwidth_mbps else '--'}</span>
+                    <span class="metric-unit">Mbps</span>
+                    <span class="metric-label">带宽</span>
                 </div>
                 <div class="metric-box score">
                     <span class="metric-value">{node.overall_score:.0f}</span>
