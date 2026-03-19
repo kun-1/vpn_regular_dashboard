@@ -23,27 +23,81 @@
     </header>
 
     <main class="main">
+        <!-- Thresholds Panel -->
+        <div class="grid grid-1">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">评估阈值</span>
+                </div>
+                <div class="panel-body">
+                    <div class="thresholds">
+                        <div class="threshold-item">
+                            <span class="threshold-label">延迟</span>
+                            <span class="threshold-value">> 200ms</span>
+                            <span class="threshold-action">触发评估</span>
+                        </div>
+                        <div class="threshold-item">
+                            <span class="threshold-label">丢包率</span>
+                            <span class="threshold-value">> 5%</span>
+                            <span class="threshold-action">触发切换</span>
+                        </div>
+                        <div class="threshold-item">
+                            <span class="threshold-label">抖动</span>
+                            <span class="threshold-value">> 50ms</span>
+                            <span class="threshold-action">标记不稳定</span>
+                        </div>
+                        <div class="threshold-item">
+                            <span class="threshold-label">评分差距</span>
+                            <span class="threshold-value">> 20分</span>
+                            <span class="threshold-action">自动切换</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Top Row: Current Node + Chart -->
         <div class="grid grid-2">
             <!-- Current Node Panel -->
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">当前节点</span>
+                    <button class="btn-small" hx-get="/api/auto-switch" hx-target="#auto-switch-result">
+                        自动切换
+                    </button>
                 </div>
                 <div class="panel-body">
                     <div id="current-node" class="current-node" hx-get="/api/current-node" hx-trigger="load, every 5s">
                         <div class="node-flag">🌐</div>
                         <div class="node-name">加载中...</div>
-                        <div class="node-delay">--<span class="unit">ms</span></div>
+                        <div class="node-metrics">
+                            <div class="metric">
+                                <span class="metric-value">--</span>
+                                <span class="metric-label">延迟</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-value">--</span>
+                                <span class="metric-label">丢包</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-value">--</span>
+                                <span class="metric-label">抖动</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-value">--</span>
+                                <span class="metric-label">评分</span>
+                            </div>
+                        </div>
                         <div class="node-status good">● 正常</div>
                     </div>
+                    <div id="auto-switch-result"></div>
                 </div>
             </div>
 
             <!-- Latency Chart Panel -->
             <div class="panel">
                 <div class="panel-header">
-                    <span class="panel-title">延迟趋势 (5分钟)</span>
+                    <span class="panel-title">延迟趋势 (实时)</span>
                 </div>
                 <div class="panel-body">
                     <div class="chart-container">
@@ -57,8 +111,13 @@
         <div class="grid grid-1">
             <div class="panel">
                 <div class="panel-header">
-                    <span class="panel-title">节点列表</span>
-                    <span style="color: var(--text-muted); font-size: 0.75rem;">自动排序</span>
+                    <span class="panel-title">节点列表 (按评分排序)</span>
+                    <div>
+                        <button class="btn-small" hx-get="/api/evaluate" hx-target="#evaluate-result">
+                            全面评估
+                        </button>
+                        <span id="evaluate-result"></span>
+                    </div>
                 </div>
                 <div class="panel-body">
                     <div class="table-container">
@@ -68,12 +127,16 @@
                                     <th>状态</th>
                                     <th>节点</th>
                                     <th>延迟</th>
-                                    <th>趋势</th>
+                                    <th>丢包率</th>
+                                    <th>抖动</th>
+                                    <th>综合评分</th>
                                 </tr>
                             </thead>
-                            <tbody id="node-list" hx-get="/api/nodes" hx-trigger="load, every 10s">
+                            <tbody id="node-list" hx-get="/api/nodes" hx-trigger="load, every 30s">
                                 <tr>
-                                    <td colspan="4" style="text-align: center; color: var(--text-muted);">加载中...</td>
+                                    <td colspan="6" style="text-align: center; color: var(--text-muted);">
+                                        加载中...
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -127,9 +190,7 @@
                     mode: 'index'
                 },
                 plugins: {
-                    legend: {
-                        display: false
-                    },
+                    legend: { display: false },
                     tooltip: {
                         backgroundColor: '#181b1f',
                         borderColor: '#2c3235',
@@ -140,9 +201,7 @@
                     }
                 },
                 scales: {
-                    x: {
-                        display: false
-                    },
+                    x: { display: false },
                     y: {
                         grid: {
                             color: '#2c3235',

@@ -342,3 +342,102 @@ tr.current {
         display: none;
     }
 }
+
+/* Thresholds Panel */
+.thresholds {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.threshold-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    font-size: 0.875rem;
+}
+
+.threshold-label {
+    color: var(--text-secondary);
+    min-width: 60px;
+}
+
+.threshold-value {
+    color: var(--color-yellow);
+    font-family: var(--font-mono);
+    font-weight: 500;
+}
+
+.threshold-action {
+    color: var(--text-muted);
+    margin-left: auto;
+    font-size: 0.75rem;
+}
+
+/* Node Metrics Grid */
+.node-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+}
+
+.metric {
+    text-align: center;
+}
+
+.metric-value {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: var(--text-primary);
+}
+
+.metric-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+/* Buttons */
+.btn-small {
+    padding: 0.375rem 0.75rem;
+    background: var(--color-blue);
+    border: none;
+    border-radius: 3px;
+    color: white;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-small:hover {
+    opacity: 0.8;
+}
+
+.btn-small:disabled {
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+/* Auto-switch result */
+#auto-switch-result {
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+#auto-switch-result:not(:empty) {
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+}
