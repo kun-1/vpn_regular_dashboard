@@ -363,7 +363,7 @@ async def nodes():
         '''
     
     html += '</div>'
-    return html
+    return HTMLResponse(content=html)
 
 
 @app.get("/api/stream")
