@@ -1,0 +1,116 @@
+/Users/zhuanzmima0000/.mom/workspace/vpn-dashboard/src/vpn_dashboard/main.py:297: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [18914]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
+Auto-switching mode started
+Evaluating 28 nodes...
+INFO:     127.0.0.1:58327 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58329 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58330 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58330 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58337 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58337 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58337 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58337 - "GET /static/style.css HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:58337 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58343 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58346 - "GET /api/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58343 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58343 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58354 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58354 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58354 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58360 - "GET /api/nodes HTTP/1.1" 200 OK
+  🇺🇸11美国西集群-全网优化(hy2): 238ms, score=75
+INFO:     127.0.0.1:58360 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58360 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58381 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58387 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58388 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58381 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58381 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58392 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58392 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58392 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58398 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58398 - "GET /api/current-node HTTP/1.1" 200 OK
+  🇺🇸12美国旧金山-全网优化(hy2): 238ms, score=75
+INFO:     127.0.0.1:58398 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58398 - "GET /static/style.css HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:58398 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58411 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58412 - "GET /api/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58411 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58427 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58429 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58429 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58411 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58442 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58429 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58442 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58429 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58445 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58442 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58449 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58445 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58449 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58460 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58461 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58449 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58463 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58461 - "GET /api/current-node HTTP/1.1" 200 OK
+  🇺🇸39美国华盛顿-全网优化(hy2): 238ms, score=75
+INFO:     127.0.0.1:58463 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58461 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58467 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58463 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58474 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58467 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58474 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58467 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58476 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58474 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58480 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58476 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58480 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58476 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58482 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58480 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58485 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58482 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58485 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58482 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58493 - "GET /api/nodes HTTP/1.1" 200 OK
+  🇺🇸29美国旧金山-全网优化(hy2): 238ms, score=75
+INFO:     127.0.0.1:58485 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58499 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58493 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58499 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58493 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58524 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58499 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58529 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58524 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58529 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58529 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58529 - "GET /static/style.css HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:58529 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58533 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58534 - "GET /api/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58533 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58533 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58542 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58543 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58544 - "GET /api/nodes HTTP/1.1" 200 OK
+  🇯🇵6日本-联通/移动(hy2): 238ms, score=75
+INFO:     127.0.0.1:58542 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58542 - "GET /api/current-node HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58553 - "GET /api/nodes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58553 - "GET /api/current-node HTTP/1.1" 200 OK
