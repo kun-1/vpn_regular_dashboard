@@ -6,7 +6,6 @@
     <title>VPN Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <header class="header">
@@ -22,74 +21,58 @@
 
     <main class="main">
         <!-- Current Node Panel -->
-        <div class="grid grid-2">
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">当前节点</span>
-                    <button class="btn-small" hx-get="/api/toggle-auto" hx-target="#auto-status" 
-                            hx-swap="innerHTML" onclick="toggleAutoText(this)">
-                        切换自动模式
-                    </button>
-                </div>
-                <div class="panel-body">
-                    <div id="current-node" class="current-node">
-                        <div class="node-flag">🌐</div>
-                        <div class="node-name" id="current-node-name">加载中...</div>
-                        <div class="node-metrics" id="current-node-metrics">
-                            <div class="metric">
-                                <span class="metric-value" id="current-delay">--</span>
-                                <span class="metric-label">延迟</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-value" id="current-loss">--</span>
-                                <span class="metric-label">丢包</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-value" id="current-jitter">--</span>
-                                <span class="metric-label">抖动</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-value" id="current-bandwidth">--</span>
-                                <span class="metric-label">带宽</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-value" id="current-score">--</span>
-                                <span class="metric-label">评分</span>
-                            </div>
-                        </div>
-                        <div class="node-status" id="current-status">● 评估中...</div>
-                    </div>
-                </div>
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">当前节点</span>
+                <button class="btn-small" hx-get="/api/toggle-auto" hx-target="#auto-status" 
+                        hx-swap="innerHTML" onclick="toggleAutoText(this)">
+                    切换自动模式
+                </button>
             </div>
-
-            <!-- Latency Chart -->
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">延迟趋势 (实时)</span>
-                </div>
-                <div class="panel-body">
-                    <div class="chart-container">
-                        <canvas id="latencyChart"></canvas>
+            <div class="panel-body">
+                <div id="current-node" class="current-node">
+                    <div class="node-flag">🌐</div>
+                    <div class="node-name" id="current-node-name">加载中...</div>
+                    <div class="node-metrics" id="current-node-metrics">
+                        <div class="metric">
+                            <span class="metric-value" id="current-delay">--</span>
+                            <span class="metric-label">延迟</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value" id="current-loss">--</span>
+                            <span class="metric-label">丢包</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value" id="current-jitter">--</span>
+                            <span class="metric-label">抖动</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value" id="current-bandwidth">--</span>
+                            <span class="metric-label">带宽</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value" id="current-score">--</span>
+                            <span class="metric-label">评分</span>
+                        </div>
                     </div>
+                    <div class="node-status" id="current-status">● 评估中...</div>
                 </div>
             </div>
         </div>
 
         <!-- Node Cards Grid -->
-        <div class="grid grid-1">
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">节点列表 (按评分排序)</span>
-                    <span class="evaluation-status" id="eval-status">评估中...</span>
-                </div>
-                <div class="panel-body">
-                    <div id="node-cards" class="cards-grid">
-                        <div class="node-card loading" style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
-                            <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
-                            <div>正在评估所有节点...</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
-                                首次启动需要约 1-2 分钟
-                            </div>
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">节点列表 (按评分排序)</span>
+                <span class="evaluation-status" id="eval-status">评估中...</span>
+            </div>
+            <div class="panel-body">
+                <div id="node-cards" class="cards-grid">
+                    <div class="node-card loading" style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
+                        <div>正在评估所有节点...</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                            首次启动需要约 1-2 分钟
                         </div>
                     </div>
                 </div>
@@ -98,49 +81,6 @@
     </main>
 
     <script>
-        // Latency Chart
-        const ctx = document.getElementById('latencyChart').getContext('2d');
-        const latencyChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: '延迟 (ms)',
-                    data: [],
-                    borderColor: '#73bf69',
-                    backgroundColor: 'rgba(115, 191, 105, 0.1)',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    pointHoverRadius: 4,
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { intersect: false, mode: 'index' },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#181b1f',
-                        borderColor: '#2c3235',
-                        borderWidth: 1,
-                        titleColor: '#9fa7b3',
-                        bodyColor: '#ffffff',
-                        displayColors: false
-                    }
-                },
-                scales: {
-                    x: { display: false },
-                    y: {
-                        grid: { color: '#2c3235', drawBorder: false },
-                        ticks: { color: '#6e7985', font: { family: "'JetBrains Mono', monospace", size: 11 } }
-                    }
-                }
-            }
-        });
-
         // Fetch current node data
         async function fetchCurrentNode() {
             try {
@@ -191,23 +131,6 @@
                 console.error('Failed to fetch node cards:', e);
             }
         }
-
-        // SSE for real-time updates
-        const eventSource = new EventSource('/api/stream');
-        
-        eventSource.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            
-            if (data.latency_history) {
-                latencyChart.data.labels = data.latency_history.map((_, i) => i);
-                latencyChart.data.datasets[0].data = data.latency_history;
-                latencyChart.update('none');
-            }
-        };
-
-        eventSource.onerror = () => {
-            console.log('SSE connection lost');
-        };
 
         // Toggle auto button text
         function toggleAutoText(btn) {

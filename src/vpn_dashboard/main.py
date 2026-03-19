@@ -68,7 +68,7 @@ class NetworkTester:
         return None
     
     @staticmethod
-    def ping_test(target: str = "8.8.8.8", count: int = 10) -> tuple:
+    def ping_test(target: str = "8.8.8.8", count: int = 3) -> tuple:
         """Run ping test and return (delay_ms, packet_loss, jitter_ms)"""
         try:
             result = subprocess.run(
@@ -245,7 +245,7 @@ class VPNSwitcher:
         )
     
     async def evaluate_all_nodes(self):
-        """Evaluate all nodes in the proxy group"""
+        """Evaluate all nodes in parallel for speed"""
         if self._evaluating:
             return
         
@@ -253,17 +253,21 @@ class VPNSwitcher:
         self.current_node = self.get_current_node()
         
         group = MihomoAPI.get_proxy_group(self.proxy_group)
-        nodes = group.get("all", [])
+        nodes = [n for n in group.get("all", []) if n not in ["REJECT", "DIRECT"]]
         
-        for node_name in nodes:
-            if node_name in ["REJECT", "DIRECT"]:
-                continue
-            
-            metrics = self.evaluate_node(node_name)
-            self.node_metrics[node_name] = metrics
-            
-            # Small delay to avoid overwhelming the API
-            await asyncio.sleep(0.5)
+        # Evaluate nodes in parallel with semaphore to limit concurrency
+        semaphore = asyncio.Semaphore(5)  # Max 5 concurrent tests
+        
+        async def evaluate_with_limit(node_name: str):
+            async with semaphore:
+                # Use thread pool for blocking operations
+                loop = asyncio.get_event_loop()
+                metrics = await loop.run_in_executor(None, self.evaluate_node, node_name)
+                self.node_metrics[node_name] = metrics
+                return node_name
+        
+        # Run all evaluations in parallel
+        await asyncio.gather(*[evaluate_with_limit(n) for n in nodes])
         
         self._evaluating = False
     
@@ -416,30 +420,6 @@ async def nodes():
         '''
     
     return HTMLResponse(content=html)
-
-
-@app.get("/api/stream")
-async def stream():
-    async def event_generator():
-        while True:
-            delay = MihomoAPI.test_delay(switcher.proxy_group)
-            switcher.latency_history.append({"time": time.time(), "delay": delay})
-            
-            data = {
-                "latency_history": list(switcher.latency_history)[-60:],
-                "current_delay": delay,
-                "current_node": switcher.current_node,
-                "node_count": len(switcher.node_metrics),
-                "timestamp": time.time()
-            }
-            
-            yield f"data: {json.dumps(data)}\n\n"
-            await asyncio.sleep(1)
-    
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream"
-    )
 
 
 @app.get("/api/toggle-auto")
