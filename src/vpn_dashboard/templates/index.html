@@ -13,57 +13,22 @@
         <h1>
             <span class="status-dot"></span>
             VPN 监控 Dashboard
+            <span class="auto-badge" id="auto-status">自动切换: 开启</span>
         </h1>
         <nav class="nav-tabs">
             <button class="nav-tab active">VPN</button>
-            <button class="nav-tab" disabled>RSS</button>
-            <button class="nav-tab" disabled>任务</button>
-            <button class="nav-tab" disabled>系统</button>
         </nav>
     </header>
 
     <main class="main">
-        <!-- Thresholds Panel -->
-        <div class="grid grid-1">
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">评估阈值</span>
-                </div>
-                <div class="panel-body">
-                    <div class="thresholds">
-                        <div class="threshold-item">
-                            <span class="threshold-label">延迟</span>
-                            <span class="threshold-value">> 200ms</span>
-                            <span class="threshold-action">触发评估</span>
-                        </div>
-                        <div class="threshold-item">
-                            <span class="threshold-label">丢包率</span>
-                            <span class="threshold-value">> 5%</span>
-                            <span class="threshold-action">触发切换</span>
-                        </div>
-                        <div class="threshold-item">
-                            <span class="threshold-label">抖动</span>
-                            <span class="threshold-value">> 50ms</span>
-                            <span class="threshold-action">标记不稳定</span>
-                        </div>
-                        <div class="threshold-item">
-                            <span class="threshold-label">评分差距</span>
-                            <span class="threshold-value">> 20分</span>
-                            <span class="threshold-action">自动切换</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top Row: Current Node + Chart -->
+        <!-- Current Node Panel -->
         <div class="grid grid-2">
-            <!-- Current Node Panel -->
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">当前节点</span>
-                    <button class="btn-small" hx-get="/api/auto-switch" hx-target="#auto-switch-result">
-                        自动切换
+                    <button class="btn-small" hx-get="/api/toggle-auto" hx-target="#auto-status" 
+                            hx-swap="innerHTML" onclick="toggleAutoText(this)">
+                        切换自动模式
                     </button>
                 </div>
                 <div class="panel-body">
@@ -90,11 +55,10 @@
                         </div>
                         <div class="node-status good">● 正常</div>
                     </div>
-                    <div id="auto-switch-result"></div>
                 </div>
             </div>
 
-            <!-- Latency Chart Panel -->
+            <!-- Latency Chart -->
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">延迟趋势 (实时)</span>
@@ -107,55 +71,19 @@
             </div>
         </div>
 
-        <!-- Middle Row: Node List -->
+        <!-- Node Cards Grid -->
         <div class="grid grid-1">
             <div class="panel">
                 <div class="panel-header">
                     <span class="panel-title">节点列表 (按评分排序)</span>
-                    <div>
-                        <button class="btn-small" hx-get="/api/evaluate" hx-target="#evaluate-result">
-                            全面评估
-                        </button>
-                        <span id="evaluate-result"></span>
-                    </div>
+                    <span class="evaluation-status" id="eval-status">评估中...</span>
                 </div>
                 <div class="panel-body">
-                    <div class="table-container">
-                        <table id="node-table">
-                            <thead>
-                                <tr>
-                                    <th>状态</th>
-                                    <th>节点</th>
-                                    <th>延迟</th>
-                                    <th>丢包率</th>
-                                    <th>抖动</th>
-                                    <th>综合评分</th>
-                                </tr>
-                            </thead>
-                            <tbody id="node-list" hx-get="/api/nodes" hx-trigger="load, every 30s">
-                                <tr>
-                                    <td colspan="6" style="text-align: center; color: var(--text-muted);">
-                                        加载中...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bottom Row: Event Log -->
-        <div class="grid grid-1">
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">事件日志</span>
-                </div>
-                <div class="panel-body">
-                    <div id="event-log" class="log-container" hx-get="/api/logs" hx-trigger="load, every 10s">
-                        <div class="log-entry">
-                            <span class="log-time">--:--:--</span>
-                            <span class="log-event">加载中...</span>
+                    <div id="node-cards" hx-get="/api/nodes" hx-trigger="load, every 10s">
+                        <div class="cards-grid">
+                            <div class="node-card loading">
+                                <div class="card-header">评估中...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -185,10 +113,7 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
+                interaction: { intersect: false, mode: 'index' },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -203,17 +128,8 @@
                 scales: {
                     x: { display: false },
                     y: {
-                        grid: {
-                            color: '#2c3235',
-                            drawBorder: false
-                        },
-                        ticks: {
-                            color: '#6e7985',
-                            font: {
-                                family: "'JetBrains Mono', monospace",
-                                size: 11
-                            }
-                        }
+                        grid: { color: '#2c3235', drawBorder: false },
+                        ticks: { color: '#6e7985', font: { family: "'JetBrains Mono', monospace", size: 11 } }
                     }
                 }
             }
@@ -225,17 +141,33 @@
         eventSource.onmessage = (event) => {
             const data = JSON.parse(event.data);
             
-            // Update chart
             if (data.latency_history) {
                 latencyChart.data.labels = data.latency_history.map((_, i) => i);
                 latencyChart.data.datasets[0].data = data.latency_history;
                 latencyChart.update('none');
             }
+            
+            // Update evaluation status
+            const evalStatus = document.getElementById('eval-status');
+            if (data.node_count > 0) {
+                evalStatus.textContent = `${data.node_count} 个节点已评估`;
+                evalStatus.classList.add('ready');
+            }
         };
 
         eventSource.onerror = () => {
-            console.log('SSE connection lost, retrying...');
+            console.log('SSE connection lost');
         };
+
+        // Toggle auto button text
+        function toggleAutoText(btn) {
+            const status = document.getElementById('auto-status');
+            if (status.textContent.includes('开启')) {
+                status.textContent = '自动切换: 关闭';
+            } else {
+                status.textContent = '自动切换: 开启';
+            }
+        }
     </script>
 </body>
 </html>
