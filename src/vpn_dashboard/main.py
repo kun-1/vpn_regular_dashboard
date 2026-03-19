@@ -318,6 +318,9 @@ async def nodes():
     # Sort by score
     nodes_data.sort(key=lambda x: x.overall_score, reverse=True)
     
+    if not nodes_data:
+        return "<div class="cards-grid"><div class="node-card loading" style="grid-column: 1 / -1; text-align: center; padding: 2rem;"><div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div><div>正在评估所有节点...</div><div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">首次启动需要约 1-2 分钟</div></div></div>"
+    
     html = '<div class="cards-grid">'
     
     for node in nodes_data:
