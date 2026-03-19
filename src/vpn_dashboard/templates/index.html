@@ -49,6 +49,10 @@
                                 <span class="metric-label">抖动</span>
                             </div>
                             <div class="metric">
+                                <span class="metric-value" id="current-bandwidth">--</span>
+                                <span class="metric-label">带宽</span>
+                            </div>
+                            <div class="metric">
                                 <span class="metric-value" id="current-score">--</span>
                                 <span class="metric-label">评分</span>
                             </div>
@@ -147,6 +151,7 @@
                 document.getElementById('current-delay').textContent = data.delay !== null ? data.delay.toFixed(0) : '--';
                 document.getElementById('current-loss').textContent = data.packet_loss !== undefined ? data.packet_loss.toFixed(1) : '--';
                 document.getElementById('current-jitter').textContent = data.jitter !== undefined ? data.jitter.toFixed(1) : '--';
+                document.getElementById('current-bandwidth').textContent = data.bandwidth !== undefined && data.bandwidth !== null ? data.bandwidth.toFixed(0) : '--';
                 document.getElementById('current-score').textContent = data.score !== undefined ? data.score.toFixed(0) : '--';
                 
                 const statusEl = document.getElementById('current-status');

@@ -256,10 +256,20 @@ body {
 }
 
 .card-metrics {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: 0.25rem;
     margin-bottom: 0.5rem;
+}
+
+.metric-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.25rem;
+}
+
+.metric-row:last-child {
+    grid-template-columns: 1fr 1fr;
 }
 
 .metric-box {

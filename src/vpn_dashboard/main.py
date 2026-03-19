@@ -1,36 +1,25 @@
 #!/usr/bin/env python3
 """
-VPN Dashboard - Grafana-style monitoring with card layout
-Auto-switching mode enabled
+VPN Dashboard - Real-time VPN node monitoring and auto-switching
 """
 
+import asyncio
 import json
 import subprocess
 import time
-import statistics
-import asyncio
-import threading
-from datetime import datetime
-from pathlib import Path
-from typing import List, Dict, Optional
-from dataclasses import dataclass
 from collections import deque
+from dataclasses import dataclass, field
+from typing import Optional
 
-from fastapi import FastAPI, Request
+import requests
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-# Configuration
-MIHOMO_SOCKET = "/tmp/mihomo-party-501-1574.sock"
-DATA_DIR = Path(__file__).parent.parent.parent / "data"
-DATA_DIR.mkdir(exist_ok=True)
-
 app = FastAPI(title="VPN Dashboard")
-
-# Static files and templates
-app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
-templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+app.mount("/static", StaticFiles(directory="src/vpn_dashboard/static"), name="static")
+templates = Jinja2Templates(directory="src/vpn_dashboard/templates")
 
 
 @dataclass
@@ -47,44 +36,13 @@ class NodeMetrics:
     
     @property
     def status(self) -> str:
-        if self.delay_ms > 200 or self.packet_loss > 5 or self.jitter_ms > 50:
+        if not self.alive or self.delay_ms >= 9999:
             return "bad"
-        elif self.delay_ms > 100 or self.packet_loss > 2 or self.jitter_ms > 30:
+        if self.overall_score >= 80:
+            return "good"
+        elif self.overall_score >= 60:
             return "warning"
-        return "good"
-
-
-class MihomoAPI:
-    """Mihomo API client via Unix Socket"""
-    
-    @staticmethod
-    def _call(path: str, method: str = "GET", data: dict = None) -> dict:
-        cmd = ["curl", "-s", "--unix-socket", MIHOMO_SOCKET]
-        if method == "PUT" and data:
-            cmd.extend(["-X", "PUT", "-H", "Content-Type: application/json", "-d", json.dumps(data)])
-        cmd.append(f"http://localhost{path}")
-        
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            return {}
-        try:
-            return json.loads(result.stdout) if result.stdout else {}
-        except:
-            return {}
-    
-    @classmethod
-    def get_proxy(cls, name: str) -> dict:
-        return cls._call(f"/proxies/{name}")
-    
-    @classmethod
-    def switch_proxy(cls, group: str, node: str) -> bool:
-        cls._call(f"/proxies/{group}", method="PUT", data={"name": node})
-        return True
-    
-    @classmethod
-    def test_delay(cls, group: str, timeout: int = 5000) -> int:
-        result = cls._call(f"/proxies/{group}/delay?timeout={timeout}")
-        return result.get("delay", 9999)
+        return "bad"
 
 
 class NetworkTester:
@@ -111,202 +69,253 @@ class NetworkTester:
     
     @staticmethod
     def ping_test(target: str = "8.8.8.8", count: int = 10) -> tuple:
+        """Run ping test and return (delay_ms, packet_loss, jitter_ms)"""
         try:
             result = subprocess.run(
                 ["ping", "-c", str(count), "-i", "0.2", target],
                 capture_output=True, text=True, timeout=30
             )
             
-            times = []
-            for line in result.stdout.split('\n'):
+            if result.returncode != 0:
+                return (9999, 100, 0)
+            
+            # Parse ping output
+            lines = result.stdout.split('\n')
+            delays = []
+            
+            for line in lines:
                 if 'time=' in line:
                     try:
-                        time_str = line.split('time=')[1].split(' ')[0]
-                        times.append(float(time_str))
+                        time_str = line.split('time=')[1].split()[0]
+                        delays.append(float(time_str))
                     except:
                         pass
             
-            packet_loss = (1 - len(times) / count) * 100
-            if not times:
-                return 9999, 100, 0
+            if not delays:
+                return (9999, 100, 0)
             
-            avg_delay = statistics.mean(times)
-            jitter = statistics.stdev(times) if len(times) > 1 else 0
+            avg_delay = sum(delays) / len(delays)
+            packet_loss = (count - len(delays)) / count * 100
             
-            return avg_delay, packet_loss, jitter
+            # Calculate jitter (std deviation)
+            if len(delays) > 1:
+                mean = avg_delay
+                variance = sum((d - mean) ** 2 for d in delays) / (len(delays) - 1)
+                jitter = variance ** 0.5
+            else:
+                jitter = 0
+            
+            return (avg_delay, packet_loss, jitter)
+            
+        except subprocess.TimeoutExpired:
+            return (9999, 100, 0)
+        except Exception:
+            return (9999, 100, 0)
+
+
+class MihomoAPI:
+    """Mihomo API wrapper"""
+    BASE_URL = "http://127.0.0.1:9090"
+    
+    @classmethod
+    def get_proxy_group(cls, group_name: str = "🚀 节点选择") -> dict:
+        """Get proxy group details"""
+        try:
+            resp = requests.get(
+                f"{cls.BASE_URL}/proxies/{requests.utils.quote(group_name)}",
+                timeout=5
+            )
+            return resp.json() if resp.status_code == 200 else {}
         except:
-            return 9999, 100, 0
+            return {}
+    
+    @classmethod
+    def get_all_proxies(cls) -> dict:
+        """Get all proxies"""
+        try:
+            resp = requests.get(f"{cls.BASE_URL}/proxies", timeout=5)
+            return resp.json().get("proxies", {}) if resp.status_code == 200 else {}
+        except:
+            return {}
+    
+    @classmethod
+    def switch_node(cls, node_name: str, group_name: str = "🚀 节点选择") -> bool:
+        """Switch to specified node"""
+        try:
+            resp = requests.put(
+                f"{cls.BASE_URL}/proxies/{requests.utils.quote(group_name)}",
+                json={"name": node_name},
+                timeout=5
+            )
+            return resp.status_code == 204
+        except:
+            return False
+    
+    @classmethod
+    def test_delay(cls, group_name: str = "🚀 节点选择", timeout: int = 5) -> float:
+        """Test delay for current node"""
+        try:
+            resp = requests.get(
+                f"{cls.BASE_URL}/proxies/{requests.utils.quote(group_name)}/delay",
+                params={"timeout": timeout * 1000, "url": "http://www.gstatic.com/generate_204"},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                return resp.json().get("delay", 9999)
+        except:
+            pass
+        return 9999
+    
+    @classmethod
+    def test_node_delay(cls, node_name: str, timeout: int = 5) -> float:
+        """Test delay for specific node"""
+        try:
+            resp = requests.get(
+                f"{cls.BASE_URL}/proxies/{requests.utils.quote(node_name)}/delay",
+                params={"timeout": timeout * 1000, "url": "http://www.gstatic.com/generate_204"},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                return resp.json().get("delay", 9999)
+        except:
+            pass
+        return 9999
 
 
 class VPNSwitcher:
-    """VPN monitoring and auto-switching"""
+    """Main VPN switching logic"""
     
-    def __init__(self, proxy_group: str = "hy2"):
-        self.proxy_group = proxy_group
-        self.node_metrics: Dict[str, NodeMetrics] = {}
-        self.latency_history: deque = deque(maxlen=300)
-        self.current_node: Optional[str] = None
-        self.auto_switch_enabled = True
-        self.evaluation_in_progress = False
-        
-        # Thresholds
-        self.THRESHOLDS = {
-            "delay_ms": 200,
-            "packet_loss_pct": 5,
-            "jitter_ms": 50,
-            "score_diff": 20,
-        }
+    def __init__(self):
+        self.proxy_group = "🚀 节点选择"
+        self.node_metrics: dict[str, NodeMetrics] = {}
+        self.latency_history: deque = deque(maxlen=60)
+        self.current_node: str = ""
+        self.auto_switch_enabled: bool = True
+        self.last_switch_time: float = 0
+        self.switch_cooldown: int = 30
+        self._evaluating: bool = False
     
-    def get_current_node(self) -> Optional[str]:
-        data = MihomoAPI.get_proxy(self.proxy_group)
-        self.current_node = data.get("now")
-        return self.current_node
+    def get_current_node(self) -> str:
+        """Get currently selected node"""
+        group = MihomoAPI.get_proxy_group(self.proxy_group)
+        return group.get("now", "")
     
-    def get_all_nodes(self) -> List[str]:
-        data = MihomoAPI.get_proxy(self.proxy_group)
-        return data.get("all", [])
-    
-    def evaluate_node(self, node_name: str) -> Optional[NodeMetrics]:
-        """Comprehensive evaluation of a single node"""
-        # Switch to node
-        MihomoAPI.switch_proxy(self.proxy_group, node_name)
-        time.sleep(1.5)
+    def evaluate_node(self, node_name: str) -> NodeMetrics:
+        """Evaluate a single node comprehensively"""
+        # Test delay via API
+        delay = MihomoAPI.test_node_delay(node_name)
         
-        # Run ping test
-        delay, loss, jitter = NetworkTester.ping_test(count=10)
+        # Run ping test for detailed metrics
+        ping_delay, packet_loss, jitter = NetworkTester.ping_test()
         
-        # Get Mihomo's measurement
-        mihomo_delay = MihomoAPI.test_delay(self.proxy_group)
-        final_delay = min(delay, mihomo_delay) if mihomo_delay < 9999 else delay
+        # Use the worse of the two delays
+        final_delay = max(delay, ping_delay)
+        alive = final_delay < 9999
         
-        # Test bandwidth
-        bandwidth = NetworkTester.test_bandwidth()
+        # Test bandwidth (only for current node to save time)
+        bandwidth = None
+        if node_name == self.current_node:
+            bandwidth = NetworkTester.test_bandwidth()
         
-        # Calculate scores (updated weights with bandwidth)
-        stability = max(0, 100 - loss * 10)
-        delay_score = max(0, 100 - final_delay / 5)
-        loss_score = max(0, 100 - loss * 20)
-        jitter_score = max(0, 100 - jitter * 2)
-        bandwidth_score = min(100, bandwidth * 2) if bandwidth else 50  # 100 Mbps = 100 score
+        # Calculate scores
+        delay_score = max(0, 100 - final_delay / 5) if alive else 0
+        loss_score = max(0, 100 - packet_loss * 10)
+        jitter_score = max(0, 100 - jitter / 2)
+        bandwidth_score = min(100, bandwidth * 2) if bandwidth else 50
+        stability_score = 100 if alive else 0
         
-        # Updated weights: delay 30%, loss 25%, jitter 15%, bandwidth 20%, stability 10%
-        overall = (0.30 * delay_score + 
-                   0.25 * loss_score + 
-                   0.15 * jitter_score + 
-                   0.20 * bandwidth_score +
-                   0.10 * stability)
+        # Weighted overall score
+        overall_score = (
+            0.30 * delay_score +
+            0.25 * loss_score +
+            0.15 * jitter_score +
+            0.20 * bandwidth_score +
+            0.10 * stability_score
+        )
         
         return NodeMetrics(
             name=node_name,
             delay_ms=final_delay,
-            packet_loss=loss,
+            packet_loss=packet_loss,
             jitter_ms=jitter,
             bandwidth_mbps=bandwidth,
-            stability_score=stability,
-            alive=loss < 50,
-            overall_score=overall
+            stability_score=stability_score,
+            alive=alive,
+            overall_score=overall_score
         )
     
-    def evaluate_all_nodes(self) -> List[NodeMetrics]:
-        """Evaluate all nodes"""
-        if self.evaluation_in_progress:
-            return list(self.node_metrics.values())
+    async def evaluate_all_nodes(self):
+        """Evaluate all nodes in the proxy group"""
+        if self._evaluating:
+            return
         
-        self.evaluation_in_progress = True
-        nodes = self.get_all_nodes()
-        results = []
+        self._evaluating = True
+        self.current_node = self.get_current_node()
         
-        print(f"Evaluating {len(nodes)} nodes...")
+        group = MihomoAPI.get_proxy_group(self.proxy_group)
+        nodes = group.get("all", [])
+        
         for node_name in nodes:
-            try:
-                metrics = self.evaluate_node(node_name)
-                if metrics:
-                    self.node_metrics[node_name] = metrics
-                    results.append(metrics)
-                    print(f"  {node_name}: {metrics.delay_ms:.0f}ms, score={metrics.overall_score:.0f}")
-            except Exception as e:
-                print(f"  {node_name}: failed - {e}")
-        
-        # Sort by score
-        results.sort(key=lambda x: x.overall_score, reverse=True)
-        self.evaluation_in_progress = False
-        return results
-    
-    def should_switch(self, current: NodeMetrics, best: NodeMetrics) -> tuple:
-        """Determine if switch needed"""
-        if current.delay_ms > self.THRESHOLDS["delay_ms"]:
-            return True, f"延迟过高 ({current.delay_ms:.0f}ms)"
-        if current.packet_loss > self.THRESHOLDS["packet_loss_pct"]:
-            return True, f"丢包过高 ({current.packet_loss:.1f}%)"
-        if current.jitter_ms > self.THRESHOLDS["jitter_ms"]:
-            return True, f"抖动过高 ({current.jitter_ms:.1f}ms)"
-        if best.overall_score > current.overall_score + self.THRESHOLDS["score_diff"]:
-            return True, f"发现更好节点 (+{best.overall_score - current.overall_score:.0f}分)"
-        return False, ""
-    
-    def auto_switch(self) -> Optional[str]:
-        """Auto-switch to best node if needed"""
-        if not self.auto_switch_enabled or self.evaluation_in_progress:
-            return None
-        
-        current_name = self.get_current_node()
-        if not current_name or not self.node_metrics:
-            return None
-        
-        current = self.node_metrics.get(current_name)
-        best = max(self.node_metrics.values(), key=lambda x: x.overall_score)
-        
-        if not current:
-            return None
-        
-        should_switch, reason = self.should_switch(current, best)
-        if should_switch and best.name != current_name:
-            print(f"Auto-switch: {current_name} -> {best.name}: {reason}")
-            MihomoAPI.switch_proxy(self.proxy_group, best.name)
-            self.current_node = best.name
-            return best.name
-        
-        return None
-    
-    def start_auto_mode(self):
-        """Start auto-switching mode in background"""
-        def run_auto():
-            # Initial evaluation
-            self.evaluate_all_nodes()
+            if node_name in ["REJECT", "DIRECT"]:
+                continue
             
-            while self.auto_switch_enabled:
-                try:
-                    # Full evaluation every 5 minutes
-                    self.evaluate_all_nodes()
-                    # Check for switch
-                    self.auto_switch()
-                    time.sleep(300)  # 5 minutes
-                except Exception as e:
-                    print(f"Auto mode error: {e}")
-                    time.sleep(60)
+            metrics = self.evaluate_node(node_name)
+            self.node_metrics[node_name] = metrics
+            
+            # Small delay to avoid overwhelming the API
+            await asyncio.sleep(0.5)
         
-        thread = threading.Thread(target=run_auto, daemon=True)
-        thread.start()
-        print("Auto-switching mode started")
+        self._evaluating = False
+    
+    def should_switch(self) -> tuple[bool, str]:
+        """Determine if we should switch to a better node"""
+        if not self.auto_switch_enabled:
+            return (False, "")
+        
+        if time.time() - self.last_switch_time < self.switch_cooldown:
+            return (False, "")
+        
+        if not self.node_metrics:
+            return (False, "")
+        
+        # Find best node
+        best_node = max(self.node_metrics.items(), key=lambda x: x[1].overall_score)
+        best_name, best_metrics = best_node
+        
+        current = self.node_metrics.get(self.current_node)
+        if not current:
+            # Current node not evaluated, switch to best if score is good enough
+            if best_metrics.overall_score > 60:
+                return (True, best_name)
+            return (False, "")
+        
+        # Only switch if significantly better (score diff > 10)
+        if best_metrics.overall_score - current.overall_score > 10:
+            return (True, best_name)
+        
+        return (False, "")
+    
+    def switch_to_node(self, node_name: str) -> bool:
+        """Switch to specified node"""
+        if MihomoAPI.switch_node(node_name, self.proxy_group):
+            self.current_node = node_name
+            self.last_switch_time = time.time()
+            return True
+        return False
 
 
-# Global switcher
+# Global switcher instance
 switcher = VPNSwitcher()
 
 
-@app.on_event("startup")
-async def startup():
-    """Start auto mode on startup"""
-    switcher.start_auto_mode()
-
-
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+@app.get("/")
+async def index():
+    return templates.TemplateResponse("index.html", {"request": {}})
 
 
 @app.get("/api/current-node")
 async def current_node():
+    """Get current node info"""
     node_name = switcher.get_current_node()
     
     # Get cached metrics if available
@@ -317,6 +326,7 @@ async def current_node():
         delay = cached.delay_ms
         packet_loss = cached.packet_loss
         jitter = cached.jitter_ms
+        bandwidth = cached.bandwidth_mbps
         score = cached.overall_score
         status = cached.status
     else:
@@ -325,6 +335,7 @@ async def current_node():
         switcher.latency_history.append({"time": time.time(), "delay": delay})
         packet_loss = 0
         jitter = 0
+        bandwidth = None
         score = 0
         status = "evaluating"
     
@@ -333,6 +344,7 @@ async def current_node():
         "delay": delay if delay < 9999 else 0,
         "packet_loss": packet_loss,
         "jitter": jitter,
+        "bandwidth": bandwidth,
         "score": score,
         "status": status,
         "auto_mode": switcher.auto_switch_enabled,
@@ -358,6 +370,7 @@ async def nodes():
         is_current = node.name == current
         status_class = node.status
         status_text = {"good": "优秀", "warning": "一般", "bad": "较差"}.get(node.status, "未知")
+        bw_display = f"{node.bandwidth_mbps:.0f}" if node.bandwidth_mbps else "--"
         
         html += f'''
         <div class="node-card {'current' if is_current else ''} {status_class}">
@@ -367,29 +380,33 @@ async def nodes():
                 {'<span class="current-badge">当前</span>' if is_current else ''}
             </div>
             <div class="card-metrics">
-                <div class="metric-box">
-                    <span class="metric-value {status_class}">{node.delay_ms:.0f}</span>
-                    <span class="metric-unit">ms</span>
-                    <span class="metric-label">延迟</span>
+                <div class="metric-row">
+                    <div class="metric-box">
+                        <span class="metric-value {status_class}">{node.delay_ms:.0f}</span>
+                        <span class="metric-unit">ms</span>
+                        <span class="metric-label">延迟</span>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-value {'bad' if node.packet_loss > 5 else 'good'}">{node.packet_loss:.1f}</span>
+                        <span class="metric-unit">%</span>
+                        <span class="metric-label">丢包</span>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-value {'bad' if node.jitter_ms > 50 else 'good'}">{node.jitter_ms:.1f}</span>
+                        <span class="metric-unit">ms</span>
+                        <span class="metric-label">抖动</span>
+                    </div>
                 </div>
-                <div class="metric-box">
-                    <span class="metric-value {'bad' if node.packet_loss > 5 else 'good'}">{node.packet_loss:.1f}</span>
-                    <span class="metric-unit">%</span>
-                    <span class="metric-label">丢包</span>
-                </div>
-                <div class="metric-box">
-                    <span class="metric-value {'bad' if node.jitter_ms > 50 else 'good'}">{node.jitter_ms:.1f}</span>
-                    <span class="metric-unit">ms</span>
-                    <span class="metric-label">抖动</span>
-                </div>
-                <div class="metric-box">
-                    <span class="metric-value">{("%.0f" % node.bandwidth_mbps) if node.bandwidth_mbps else "--"}</span>
-                    <span class="metric-unit">Mbps</span>
-                    <span class="metric-label">带宽</span>
-                </div>
-                <div class="metric-box score">
-                    <span class="metric-value">{node.overall_score:.1f}</span>
-                    <span class="metric-label">评分</span>
+                <div class="metric-row">
+                    <div class="metric-box">
+                        <span class="metric-value">{bw_display}</span>
+                        <span class="metric-unit">Mbps</span>
+                        <span class="metric-label">带宽</span>
+                    </div>
+                    <div class="metric-box score">
+                        <span class="metric-value">{node.overall_score:.1f}</span>
+                        <span class="metric-label">评分</span>
+                    </div>
                 </div>
             </div>
             <div class="card-footer">
@@ -429,6 +446,25 @@ async def stream():
 async def toggle_auto():
     switcher.auto_switch_enabled = not switcher.auto_switch_enabled
     return {"enabled": switcher.auto_switch_enabled}
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks"""
+    # Start node evaluation
+    asyncio.create_task(switcher.evaluate_all_nodes())
+    
+    # Start auto-switching loop
+    async def auto_switch_loop():
+        await asyncio.sleep(5)  # Wait for initial evaluation
+        while True:
+            should_switch, best_node = switcher.should_switch()
+            if should_switch:
+                print(f"[AutoSwitch] Switching to {best_node}")
+                switcher.switch_to_node(best_node)
+            await asyncio.sleep(10)
+    
+    asyncio.create_task(auto_switch_loop())
 
 
 def main():
