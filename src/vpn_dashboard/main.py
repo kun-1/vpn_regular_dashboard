@@ -389,7 +389,7 @@ async def nodes():
                     <span class="metric-label">带宽</span>
                 </div>
                 <div class="metric-box score">
-                    <span class="metric-value">{node.overall_score:.0f}</span>
+                    <span class="metric-value">{node.overall_score:.1f}</span>
                     <span class="metric-label">评分</span>
                 </div>
             </div>
