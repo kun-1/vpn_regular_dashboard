@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <header class="header">
+        <h1>
+            <span class="status-dot"></span>
+            VPN 监控 Dashboard
+        </h1>
+        <nav class="nav-tabs">
+            <button class="nav-tab active">VPN</button>
+            <button class="nav-tab" disabled>RSS</button>
+            <button class="nav-tab" disabled>任务</button>
+            <button class="nav-tab" disabled>系统</button>
+        </nav>
+    </header>
+
+    <main class="main">
+        <!-- Top Row: Current Node + Chart -->
+        <div class="grid grid-2">
+            <!-- Current Node Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">当前节点</span>
+                </div>
+                <div class="panel-body">
+                    <div id="current-node" class="current-node" hx-get="/api/current-node" hx-trigger="load, every 5s">
+                        <div class="node-flag">🌐</div>
+                        <div class="node-name">加载中...</div>
+                        <div class="node-delay">--<span class="unit">ms</span></div>
+                        <div class="node-status good">● 正常</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Latency Chart Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">延迟趋势 (5分钟)</span>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-container">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle Row: Node List -->
+        <div class="grid grid-1">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">节点列表</span>
+                    <span style="color: var(--text-muted); font-size: 0.75rem;">自动排序</span>
+                </div>
+                <div class="panel-body">
+                    <div class="table-container">
+                        <table id="node-table">
+                            <thead>
+                                <tr>
+                                    <th>状态</th>
+                                    <th>节点</th>
+                                    <th>延迟</th>
+                                    <th>趋势</th>
+                                </tr>
+                            </thead>
+                            <tbody id="node-list" hx-get="/api/nodes" hx-trigger="load, every 10s">
+                                <tr>
+                                    <td colspan="4" style="text-align: center; color: var(--text-muted);">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Event Log -->
+        <div class="grid grid-1">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">事件日志</span>
+                </div>
+                <div class="panel-body">
+                    <div id="event-log" class="log-container" hx-get="/api/logs" hx-trigger="load, every 10s">
+                        <div class="log-entry">
+                            <span class="log-time">--:--:--</span>
+                            <span class="log-event">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Latency Chart
+        const ctx = document.getElementById('latencyChart').getContext('2d');
+        const latencyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '延迟 (ms)',
+                    data: [],
+                    borderColor: '#73bf69',
+                    backgroundColor: 'rgba(115, 191, 105, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: '#181b1f',
+                        borderColor: '#2c3235',
+                        borderWidth: 1,
+                        titleColor: '#9fa7b3',
+                        bodyColor: '#ffffff',
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    x: {
+                        display: false
+                    },
+                    y: {
+                        grid: {
+                            color: '#2c3235',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#6e7985',
+                            font: {
+                                family: "'JetBrains Mono', monospace",
+                                size: 11
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // SSE for real-time updates
+        const eventSource = new EventSource('/api/stream');
+        
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Update chart
+            if (data.latency_history) {
+                latencyChart.data.labels = data.latency_history.map((_, i) => i);
+                latencyChart.data.datasets[0].data = data.latency_history;
+                latencyChart.update('none');
+            }
+        };
+
+        eventSource.onerror = () => {
+            console.log('SSE connection lost, retrying...');
+        };
+    </script>
+</body>
+</html>
