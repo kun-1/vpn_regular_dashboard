@@ -375,7 +375,7 @@ async def current_node():
     switcher.record_metrics(delay)
     
     # Get cached metrics if available
-    cached = switcher.node_metrics_cache.get(node_name, {})
+    cached = switcher.node_metrics_cache.get(node_name)
     
     # Determine status
     if delay < 100:
@@ -394,9 +394,9 @@ async def current_node():
     return {
         "node": node_name,
         "delay": delay if delay < 9999 else None,
-        "packet_loss": cached.get("packet_loss", 0),
-        "jitter": cached.get("jitter_ms", 0),
-        "score": cached.get("overall_score", 0),
+        "packet_loss": cached.packet_loss if cached else 0,
+        "jitter": cached.jitter_ms if cached else 0,
+        "score": cached.overall_score if cached else 0,
         "status": status,
         "status_text": status_text
     }
