@@ -386,29 +386,21 @@ async def nodes():
             <div class="card-metrics">
                 <div class="metric-row">
                     <div class="metric-box">
-                        <span class="metric-value {status_class}">{node.delay_ms:.0f}</span>
-                        <span class="metric-unit">ms</span>
+                        <span class="metric-value {status_class}">{node.delay_ms:.0f}<span class="metric-unit">ms</span></span>
                         <span class="metric-label">延迟</span>
                     </div>
                     <div class="metric-box">
-                        <span class="metric-value {'bad' if node.packet_loss > 5 else 'good'}">{node.packet_loss:.1f}</span>
-                        <span class="metric-unit">%</span>
+                        <span class="metric-value {'bad' if node.packet_loss > 5 else 'good'}">{node.packet_loss:.1f}<span class="metric-unit">%</span></span>
                         <span class="metric-label">丢包</span>
-                    </div>
-                    <div class="metric-box">
-                        <span class="metric-value {'bad' if node.jitter_ms > 50 else 'good'}">{node.jitter_ms:.1f}</span>
-                        <span class="metric-unit">ms</span>
-                        <span class="metric-label">抖动</span>
                     </div>
                 </div>
                 <div class="metric-row">
                     <div class="metric-box">
-                        <span class="metric-value">{bw_display}</span>
-                        <span class="metric-unit">Mbps</span>
-                        <span class="metric-label">带宽</span>
+                        <span class="metric-value {'bad' if node.jitter_ms > 50 else 'good'}">{node.jitter_ms:.1f}<span class="metric-unit">ms</span></span>
+                        <span class="metric-label">抖动</span>
                     </div>
                     <div class="metric-box score">
-                        <span class="metric-value">{node.overall_score:.1f}</span>
+                        <span class="metric-value">{node.overall_score:.0f}</span>
                         <span class="metric-label">评分</span>
                     </div>
                 </div>
@@ -434,7 +426,7 @@ async def startup_event():
     # Start node evaluation
     asyncio.create_task(switcher.evaluate_all_nodes())
     
-    # Start auto-switching loop
+    # Start auto-switching loop (every 10s)
     async def auto_switch_loop():
         await asyncio.sleep(5)  # Wait for initial evaluation
         while True:
@@ -445,6 +437,17 @@ async def startup_event():
             await asyncio.sleep(10)
     
     asyncio.create_task(auto_switch_loop())
+    
+    # Start periodic re-evaluation loop (every 60s)
+    async def reevaluate_loop():
+        await asyncio.sleep(60)  # First re-eval after 60s
+        while True:
+            print("[Re-eval] Starting periodic node re-evaluation...")
+            await switcher.evaluate_all_nodes()
+            print(f"[Re-eval] Completed. Evaluated {len(switcher.node_metrics)} nodes")
+            await asyncio.sleep(60)
+    
+    asyncio.create_task(reevaluate_loop())
 
 
 def main():

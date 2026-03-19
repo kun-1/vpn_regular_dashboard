@@ -189,7 +189,7 @@ body {
     justify-content: start;
 }
 
-/* Node Card - Improved design */
+/* Node Card - Square design */
 .node-card {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
@@ -197,6 +197,10 @@ body {
     padding: 0.5rem;
     transition: all 0.2s;
     position: relative;
+    width: 140px;
+    height: 140px;
+    display: flex;
+    flex-direction: column;
 }
 
 .node-card:hover {
@@ -219,10 +223,11 @@ body {
 .card-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.5rem;
+    gap: 0.25rem;
+    margin-bottom: 0.25rem;
+    padding-bottom: 0.25rem;
     border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
 }
 
 .node-status-dot {
@@ -238,47 +243,50 @@ body {
 
 .card-header .node-name {
     flex: 1;
-    font-size: 0.875rem;
+    font-size: 0.625rem;
     font-weight: 500;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.2;
 }
 
 .current-badge {
-    padding: 0.125rem 0.5rem;
+    padding: 0.0625rem 0.25rem;
     background: var(--color-blue);
     color: white;
-    font-size: 0.625rem;
-    border-radius: 3px;
+    font-size: 0.5rem;
+    border-radius: 2px;
     font-weight: 500;
 }
 
 .card-metrics {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    margin-bottom: 0.5rem;
+    gap: 0.125rem;
+    margin-bottom: 0.25rem;
+    flex: 1;
+    min-height: 0;
 }
 
 .metric-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.25rem;
-}
-
-.metric-row:last-child {
     grid-template-columns: 1fr 1fr;
+    gap: 0.125rem;
 }
 
 .metric-box {
     text-align: center;
-    padding: 0.375rem 0.25rem;
+    padding: 0.125rem;
     background: var(--bg-secondary);
-    border-radius: 4px;
+    border-radius: 3px;
     border: 1px solid transparent;
     transition: border-color 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
 }
 
 .metric-box:hover {
@@ -287,9 +295,10 @@ body {
 
 .metric-box .metric-value {
     font-family: var(--font-mono);
-    font-size: 0.875rem;
+    font-size: 0.65rem;
     font-weight: 600;
     display: block;
+    line-height: 1;
 }
 
 .metric-box .metric-value.good { color: var(--color-green); }
@@ -297,18 +306,20 @@ body {
 .metric-box .metric-value.bad { color: var(--color-red); }
 
 .metric-box .metric-unit {
-    font-size: 0.625rem;
+    font-size: 0.5rem;
     color: var(--text-muted);
-    margin-left: 0.125rem;
+    margin-left: 0.0625rem;
+    opacity: 0.7;
 }
 
 .metric-box .metric-label {
     display: block;
-    font-size: 0.625rem;
+    font-size: 0.45rem;
     color: var(--text-muted);
-    margin-top: 0.25rem;
+    margin-top: 0.0625rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    line-height: 1;
 }
 
 .metric-box.score .metric-value {
@@ -317,15 +328,16 @@ body {
 
 .card-footer {
     text-align: center;
-    padding-top: 0.5rem;
+    padding-top: 0.25rem;
     border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
 }
 
 .status-text {
-    font-size: 0.75rem;
+    font-size: 0.5rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .status-text.good { color: var(--color-green); }
