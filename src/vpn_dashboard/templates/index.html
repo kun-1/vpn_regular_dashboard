@@ -32,28 +32,28 @@
                     </button>
                 </div>
                 <div class="panel-body">
-                    <div id="current-node" class="current-node" hx-get="/api/current-node" hx-trigger="load, every 5s">
+                    <div id="current-node" class="current-node">
                         <div class="node-flag">🌐</div>
-                        <div class="node-name">加载中...</div>
-                        <div class="node-metrics">
+                        <div class="node-name" id="current-node-name">加载中...</div>
+                        <div class="node-metrics" id="current-node-metrics">
                             <div class="metric">
-                                <span class="metric-value">--</span>
+                                <span class="metric-value" id="current-delay">--</span>
                                 <span class="metric-label">延迟</span>
                             </div>
                             <div class="metric">
-                                <span class="metric-value">--</span>
+                                <span class="metric-value" id="current-loss">--</span>
                                 <span class="metric-label">丢包</span>
                             </div>
                             <div class="metric">
-                                <span class="metric-value">--</span>
+                                <span class="metric-value" id="current-jitter">--</span>
                                 <span class="metric-label">抖动</span>
                             </div>
                             <div class="metric">
-                                <span class="metric-value">--</span>
+                                <span class="metric-value" id="current-score">--</span>
                                 <span class="metric-label">评分</span>
                             </div>
                         </div>
-                        <div class="node-status" id="node-status-text">● 评估中...</div>
+                        <div class="node-status" id="current-status">● 评估中...</div>
                     </div>
                 </div>
             </div>
@@ -79,11 +79,9 @@
                     <span class="evaluation-status" id="eval-status">评估中...</span>
                 </div>
                 <div class="panel-body">
-                    <div id="node-cards" hx-get="/api/nodes" hx-trigger="load, every 10s">
-                        <div class="cards-grid">
-                            <div class="node-card loading">
-                                <div class="card-header">评估中...</div>
-                            </div>
+                    <div id="node-cards" class="cards-grid">
+                        <div class="node-card loading">
+                            <div class="card-header">评估中...</div>
                         </div>
                     </div>
                 </div>
@@ -135,6 +133,56 @@
             }
         });
 
+        // Fetch current node data
+        async function fetchCurrentNode() {
+            try {
+                const response = await fetch('/api/current-node');
+                const data = await response.json();
+                
+                document.getElementById('current-node-name').textContent = data.node || '未知';
+                document.getElementById('current-delay').textContent = data.delay !== null ? data.delay.toFixed(0) : '--';
+                document.getElementById('current-loss').textContent = data.packet_loss !== undefined ? data.packet_loss.toFixed(1) : '--';
+                document.getElementById('current-jitter').textContent = data.jitter !== undefined ? data.jitter.toFixed(1) : '--';
+                document.getElementById('current-score').textContent = data.score !== undefined ? data.score.toFixed(0) : '--';
+                
+                const statusEl = document.getElementById('current-status');
+                if (data.status === 'evaluating') {
+                    statusEl.textContent = '● 评估中...';
+                    statusEl.className = 'node-status';
+                } else if (data.status === 'good') {
+                    statusEl.textContent = '● 优秀';
+                    statusEl.className = 'node-status good';
+                } else if (data.status === 'warning') {
+                    statusEl.textContent = '● 一般';
+                    statusEl.className = 'node-status warning';
+                } else if (data.status === 'bad') {
+                    statusEl.textContent = '● 较差';
+                    statusEl.className = 'node-status bad';
+                }
+            } catch (e) {
+                console.error('Failed to fetch current node:', e);
+            }
+        }
+
+        // Fetch node cards
+        async function fetchNodeCards() {
+            try {
+                const response = await fetch('/api/nodes');
+                const html = await response.text();
+                document.getElementById('node-cards').innerHTML = html;
+                
+                // Update evaluation status
+                const evalStatus = document.getElementById('eval-status');
+                const cardCount = document.querySelectorAll('.node-card').length;
+                if (cardCount > 1) {
+                    evalStatus.textContent = cardCount + ' 个节点已评估';
+                    evalStatus.classList.add('ready');
+                }
+            } catch (e) {
+                console.error('Failed to fetch node cards:', e);
+            }
+        }
+
         // SSE for real-time updates
         const eventSource = new EventSource('/api/stream');
         
@@ -145,13 +193,6 @@
                 latencyChart.data.labels = data.latency_history.map((_, i) => i);
                 latencyChart.data.datasets[0].data = data.latency_history;
                 latencyChart.update('none');
-            }
-            
-            // Update evaluation status
-            const evalStatus = document.getElementById('eval-status');
-            if (data.node_count > 0) {
-                evalStatus.textContent = `${data.node_count} 个节点已评估`;
-                evalStatus.classList.add('ready');
             }
         };
 
@@ -168,6 +209,12 @@
                 status.textContent = '自动切换: 开启';
             }
         }
+
+        // Initial load and polling
+        fetchCurrentNode();
+        fetchNodeCards();
+        setInterval(fetchCurrentNode, 5000);
+        setInterval(fetchNodeCards, 10000);
     </script>
 </body>
 </html>
