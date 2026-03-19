@@ -184,7 +184,7 @@ body {
 /* Cards Grid - Better layout */
 .cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 140px);
+    grid-template-columns: repeat(auto-fill, 180px);
     gap: 0.75rem;
     justify-content: start;
 }
@@ -194,11 +194,11 @@ body {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    padding: 0.5rem;
+    padding: 0.625rem;
     transition: all 0.2s;
     position: relative;
-    width: 140px;
-    height: 140px;
+    width: 180px;
+    height: 180px;
     display: flex;
     flex-direction: column;
 }
@@ -243,22 +243,13 @@ body {
 
 .card-header .node-name {
     flex: 1;
-    font-size: 0.625rem;
+    font-size: 0.75rem;
     font-weight: 500;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.2;
-}
-
-.current-badge {
-    padding: 0.0625rem 0.25rem;
-    background: var(--color-blue);
-    color: white;
-    font-size: 0.5rem;
-    border-radius: 2px;
-    font-weight: 500;
 }
 
 .card-metrics {
@@ -295,7 +286,7 @@ body {
 
 .metric-box .metric-value {
     font-family: var(--font-mono);
-    font-size: 0.65rem;
+    font-size: 0.875rem;
     font-weight: 600;
     display: block;
     line-height: 1;
@@ -306,17 +297,17 @@ body {
 .metric-box .metric-value.bad { color: var(--color-red); }
 
 .metric-box .metric-unit {
-    font-size: 0.5rem;
+    font-size: 0.625rem;
     color: var(--text-muted);
-    margin-left: 0.0625rem;
+    margin-left: 0.125rem;
     opacity: 0.7;
 }
 
 .metric-box .metric-label {
     display: block;
-    font-size: 0.45rem;
+    font-size: 0.625rem;
     color: var(--text-muted);
-    margin-top: 0.0625rem;
+    margin-top: 0.125rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1;
@@ -334,10 +325,10 @@ body {
 }
 
 .status-text {
-    font-size: 0.5rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
 }
 
 .status-text.good { color: var(--color-green); }

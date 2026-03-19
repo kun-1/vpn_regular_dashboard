@@ -381,7 +381,6 @@ async def nodes():
             <div class="card-header">
                 <span class="node-status-dot {status_class}"></span>
                 <span class="node-name">{node.name}</span>
-                {'<span class="current-badge">当前</span>' if is_current else ''}
             </div>
             <div class="card-metrics">
                 <div class="metric-row">
