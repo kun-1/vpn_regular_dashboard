@@ -6,147 +6,374 @@
     <title>VPN Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <header class="header">
-        <h1>
-            <span class="status-dot"></span>
-            VPN 监控 Dashboard
+        <div class="header-left">
+            <div class="logo">
+                <span class="status-dot"></span>
+                <h1>VPN Dashboard</h1>
+            </div>
             <span class="auto-badge" id="auto-status">自动切换: 开启</span>
-        </h1>
-        <nav class="nav-tabs">
-            <button class="nav-tab active">VPN</button>
+        </div>
+        <nav class="header-right">
+            <button class="btn-primary" id="toggle-auto-btn" onclick="toggleAuto()">
+                切换自动模式
+            </button>
         </nav>
     </header>
 
     <main class="main">
-        <!-- Current Node Panel -->
-        <div class="panel">
-            <div class="panel-header">
-                <span class="panel-title">当前节点</span>
-                <button class="btn-small" hx-get="/api/toggle-auto" hx-target="#auto-status" 
-                        hx-swap="innerHTML" onclick="toggleAutoText(this)">
-                    切换自动模式
-                </button>
-            </div>
-            <div class="panel-body">
-                <div id="current-node" class="current-node">
-                    <div class="node-flag">🌐</div>
-                    <div class="node-name" id="current-node-name">加载中...</div>
-                    <div class="node-metrics" id="current-node-metrics">
-                        <div class="metric">
+        <!-- Top Row: Current Status + Chart -->
+        <div class="grid grid-2">
+            <!-- Current Node Panel -->
+            <div class="panel panel-current">
+                <div class="panel-header">
+                    <span class="panel-title">当前连接</span>
+                    <span class="last-switch" id="last-switch">--</span>
+                </div>
+                <div class="panel-body">
+                    <div class="current-connection">
+                        <div class="location-display">
+                            <span class="location-flag" id="current-flag">🌐</span>
+                            <div class="location-info">
+                                <div class="location-city" id="current-location">检测中...</div>
+                                <div class="location-ip" id="current-ip">--</div>
+                            </div>
+                        </div>
+                        <div class="node-display">
+                            <span class="node-label">节点</span>
+                            <span class="node-value" id="current-node-name">--</span>
+                        </div>
+                    </div>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-card" id="metric-delay">
                             <span class="metric-value" id="current-delay">--</span>
+                            <span class="metric-unit">ms</span>
                             <span class="metric-label">延迟</span>
                         </div>
-                        <div class="metric">
+                        <div class="metric-card" id="metric-loss">
                             <span class="metric-value" id="current-loss">--</span>
+                            <span class="metric-unit">%</span>
                             <span class="metric-label">丢包</span>
                         </div>
-                        <div class="metric">
+                        <div class="metric-card" id="metric-jitter">
                             <span class="metric-value" id="current-jitter">--</span>
+                            <span class="metric-unit">ms</span>
                             <span class="metric-label">抖动</span>
                         </div>
-                        <div class="metric">
-                            <span class="metric-value" id="current-bandwidth">--</span>
-                            <span class="metric-label">带宽</span>
-                        </div>
-                        <div class="metric">
+                        <div class="metric-card score" id="metric-score">
                             <span class="metric-value" id="current-score">--</span>
                             <span class="metric-label">评分</span>
                         </div>
                     </div>
-                    <div class="node-status" id="current-status">● 评估中...</div>
+                    
+                    <div class="status-bar" id="current-status-bar">
+                        <span class="status-indicator" id="current-status">评估中...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Latency Chart Panel -->
+            <div class="panel panel-chart">
+                <div class="panel-header">
+                    <span class="panel-title">延迟趋势</span>
+                    <span class="chart-legend">
+                        <span class="legend-item"><span class="legend-dot good"></span>优秀</span>
+                        <span class="legend-item"><span class="legend-dot warning"></span>一般</span>
+                        <span class="legend-item"><span class="legend-dot bad"></span>较差</span>
+                    </span>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-container">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Node Cards Grid -->
-        <div class="panel">
+        <!-- Node List Panel -->
+        <div class="panel panel-nodes">
             <div class="panel-header">
-                <span class="panel-title">节点列表 (按评分排序)</span>
-                <span class="evaluation-status" id="eval-status">评估中...</span>
+                <span class="panel-title">节点列表</span>
+                <div class="panel-actions">
+                    <span class="eval-status" id="eval-status">评估中...</span>
+                    <button class="btn-small" onclick="refreshNodes()">刷新</button>
+                </div>
             </div>
             <div class="panel-body">
-                <div id="node-cards" class="cards-grid">
-                    <div class="node-card loading" style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
-                        <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
-                        <div>正在评估所有节点...</div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
-                            首次启动需要约 1-2 分钟
-                        </div>
-                    </div>
+                <div id="node-cards" class="nodes-table-container">
+                    <table class="nodes-table">
+                        <thead>
+                            <tr>
+                                <th>节点</th>
+                                <th>位置</th>
+                                <th>延迟</th>
+                                <th>丢包</th>
+                                <th>抖动</th>
+                                <th>评分</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="nodes-tbody">
+                            <tr class="loading-row">
+                                <td colspan="8">
+                                    <div class="loading-spinner"></div>
+                                    <span>正在评估所有节点...</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
+        // Chart instance
+        let latencyChart = null;
+
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('latencyChart').getContext('2d');
+            latencyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '延迟 (ms)',
+                        data: [],
+                        borderColor: '#5794f2',
+                        backgroundColor: 'rgba(87, 148, 242, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#6e7985',
+                                font: { size: 10 }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
         // Fetch current node data
-        async function fetchCurrentNode() {
+        async function fetchCurrent() {
             try {
-                const response = await fetch('/api/current-node');
+                const response = await fetch('/api/current');
                 const data = await response.json();
                 
-                document.getElementById('current-node-name').textContent = data.node || '未知';
-                document.getElementById('current-delay').textContent = data.delay !== null ? data.delay.toFixed(0) : '--';
-                document.getElementById('current-loss').textContent = data.packet_loss !== undefined ? data.packet_loss.toFixed(1) : '--';
-                document.getElementById('current-jitter').textContent = data.jitter !== undefined ? data.jitter.toFixed(1) : '--';
-                document.getElementById('current-bandwidth').textContent = data.bandwidth !== undefined && data.bandwidth !== null ? data.bandwidth.toFixed(0) : '--';
-                document.getElementById('current-score').textContent = data.score !== undefined ? data.score.toFixed(0) : '--';
-                
-                const statusEl = document.getElementById('current-status');
-                if (data.status === 'evaluating') {
-                    statusEl.textContent = '● 评估中...';
-                    statusEl.className = 'node-status';
-                } else if (data.status === 'good') {
-                    statusEl.textContent = '● 优秀';
-                    statusEl.className = 'node-status good';
-                } else if (data.status === 'warning') {
-                    statusEl.textContent = '● 一般';
-                    statusEl.className = 'node-status warning';
-                } else if (data.status === 'bad') {
-                    statusEl.textContent = '● 较差';
-                    statusEl.className = 'node-status bad';
+                // Update location display
+                if (data.ip_info) {
+                    document.getElementById('current-flag').textContent = data.ip_info.flag;
+                    document.getElementById('current-location').textContent = data.ip_info.location;
+                    document.getElementById('current-ip').textContent = data.ip_info.ip;
                 }
+                
+                // Update node name
+                document.getElementById('current-node-name').textContent = data.node || 'Unknown';
+                
+                // Update metrics
+                const metrics = data.metrics;
+                document.getElementById('current-delay').textContent = metrics.delay ? metrics.delay.toFixed(0) : '--';
+                document.getElementById('current-loss').textContent = metrics.packet_loss !== undefined ? metrics.packet_loss.toFixed(1) : '--';
+                document.getElementById('current-jitter').textContent = metrics.jitter !== undefined ? metrics.jitter.toFixed(1) : '--';
+                document.getElementById('current-score').textContent = metrics.score !== undefined ? metrics.score.toFixed(0) : '--';
+                
+                // Update status
+                const statusEl = document.getElementById('current-status');
+                const statusBar = document.getElementById('current-status-bar');
+                statusBar.className = 'status-bar ' + metrics.status;
+                
+                const statusText = {
+                    'good': '● 连接优秀',
+                    'warning': '● 连接一般', 
+                    'bad': '● 连接较差',
+                    'evaluating': '● 评估中...'
+                };
+                statusEl.textContent = statusText[metrics.status] || '● 未知';
+                
+                // Update metric cards
+                document.getElementById('metric-delay').className = 'metric-card ' + (metrics.delay < 100 ? 'good' : metrics.delay < 300 ? 'warning' : 'bad');
+                document.getElementById('metric-loss').className = 'metric-card ' + (metrics.packet_loss < 1 ? 'good' : metrics.packet_loss < 5 ? 'warning' : 'bad');
+                document.getElementById('metric-jitter').className = 'metric-card ' + (metrics.jitter < 20 ? 'good' : metrics.jitter < 50 ? 'warning' : 'bad');
+                document.getElementById('metric-score').className = 'metric-card score ' + metrics.status;
+                
+                // Update last switch time
+                document.getElementById('last-switch').textContent = '上次切换: ' + data.last_switch;
+                
             } catch (e) {
-                console.error('Failed to fetch current node:', e);
+                console.error('Failed to fetch current:', e);
             }
         }
 
-        // Fetch node cards
-        async function fetchNodeCards() {
+        // Fetch node list
+        async function fetchNodes() {
             try {
                 const response = await fetch('/api/nodes');
-                const html = await response.text();
-                document.getElementById('node-cards').innerHTML = html;
+                const nodes = await response.json();
+                
+                const tbody = document.getElementById('nodes-tbody');
+                
+                if (nodes.length === 0) {
+                    tbody.innerHTML = `
+                        <tr class="loading-row">
+                            <td colspan="8">
+                                <div class="loading-spinner"></div>
+                                <span>正在评估所有节点...</span>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = nodes.map(node => {
+                    const isCurrent = node.is_current;
+                    const statusClass = node.status;
+                    const statusText = { good: '优秀', warning: '一般', bad: '较差' }[node.status] || '未知';
+                    const location = node.ip_info ? `${node.ip_info.flag} ${node.ip_info.location}` : '🌐 Unknown';
+                    
+                    return `
+                        <tr class="${isCurrent ? 'current' : ''} ${statusClass}">
+                            <td class="node-name-cell">
+                                ${isCurrent ? '<span class="current-badge">当前</span>' : ''}
+                                <span class="node-name-text">${node.name}</span>
+                            </td>
+                            <td class="location-cell">${location}</td>
+                            <td class="metric-cell ${node.delay_ms < 100 ? 'good' : node.delay_ms < 300 ? 'warning' : 'bad'}">${node.delay_ms.toFixed(0)} ms</td>
+                            <td class="metric-cell ${node.packet_loss < 1 ? 'good' : node.packet_loss < 5 ? 'warning' : 'bad'}">${node.packet_loss.toFixed(1)}%</td>
+                            <td class="metric-cell ${node.jitter_ms < 20 ? 'good' : node.jitter_ms < 50 ? 'warning' : 'bad'}">${node.jitter_ms.toFixed(1)} ms</td>
+                            <td class="score-cell">${node.score.toFixed(0)}</td>
+                            <td class="status-cell"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                            <td class="action-cell">
+                                ${!isCurrent ? `<button class="btn-switch" onclick="switchToNode('${node.name}')">切换</button>` : '<span class="current-text">使用中</span>'}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
                 
                 // Update evaluation status
-                const evalStatus = document.getElementById('eval-status');
-                const cardCount = document.querySelectorAll('.node-card').length;
-                if (cardCount > 1) {
-                    evalStatus.textContent = cardCount + ' 个节点已评估';
-                    evalStatus.classList.add('ready');
+                document.getElementById('eval-status').textContent = `${nodes.length} 个节点已评估`;
+                document.getElementById('eval-status').classList.add('ready');
+                
+            } catch (e) {
+                console.error('Failed to fetch nodes:', e);
+            }
+        }
+
+        // Fetch history for chart
+        async function fetchHistory() {
+            try {
+                const response = await fetch('/api/history');
+                const history = await response.json();
+                
+                if (latencyChart && history.length > 0) {
+                    // Take last 30 points
+                    const recent = history.slice(-30);
+                    latencyChart.data.labels = recent.map((_, i) => i);
+                    latencyChart.data.datasets[0].data = recent.map(h => h.delay);
+                    latencyChart.update('none');
                 }
             } catch (e) {
-                console.error('Failed to fetch node cards:', e);
+                console.error('Failed to fetch history:', e);
             }
         }
 
-        // Toggle auto button text
-        function toggleAutoText(btn) {
-            const status = document.getElementById('auto-status');
-            if (status.textContent.includes('开启')) {
-                status.textContent = '自动切换: 关闭';
-            } else {
-                status.textContent = '自动切换: 开启';
+        // Switch to node
+        async function switchToNode(nodeName) {
+            try {
+                const btn = event.target;
+                btn.disabled = true;
+                btn.textContent = '切换中...';
+                
+                const response = await fetch(`/api/switch/${encodeURIComponent(nodeName)}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    btn.textContent = '成功';
+                    setTimeout(() => {
+                        fetchCurrent();
+                        fetchNodes();
+                    }, 1000);
+                } else {
+                    btn.textContent = '失败';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                console.error('Switch failed:', e);
+                event.target.textContent = '失败';
+                event.target.disabled = false;
             }
         }
 
-        // Initial load and polling
-        fetchCurrentNode();
-        fetchNodeCards();
-        setInterval(fetchCurrentNode, 5000);
-        setInterval(fetchNodeCards, 60000);  // Refresh node list every 60s
+        // Toggle auto mode
+        async function toggleAuto() {
+            try {
+                const response = await fetch('/api/toggle-auto');
+                const data = await response.json();
+                
+                const status = document.getElementById('auto-status');
+                const btn = document.getElementById('toggle-auto-btn');
+                
+                if (data.enabled) {
+                    status.textContent = '自动切换: 开启';
+                    btn.textContent = '关闭自动模式';
+                } else {
+                    status.textContent = '自动切换: 关闭';
+                    btn.textContent = '开启自动模式';
+                }
+            } catch (e) {
+                console.error('Toggle auto failed:', e);
+            }
+        }
+
+        // Refresh nodes
+        function refreshNodes() {
+            fetchNodes();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            fetchCurrent();
+            fetchNodes();
+            fetchHistory();
+            
+            // Set up polling
+            setInterval(fetchCurrent, 5000);
+            setInterval(fetchNodes, 30000);
+            setInterval(fetchHistory, 10000);
+        });
     </script>
 </body>
 </html>
