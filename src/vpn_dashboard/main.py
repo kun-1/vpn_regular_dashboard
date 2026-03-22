@@ -688,8 +688,10 @@ class VPNSwitcher:
         if not self.auto_switch_enabled:
             return (False, "", "auto mode disabled")
         
-        if time.time() - self.last_switch_time < self.switch_cooldown:
-            remaining = int(self.switch_cooldown - (time.time() - self.last_switch_time))
+        # Check cooldown (handle initial state where last_switch_time is 0)
+        time_since_switch = time.time() - self.last_switch_time if self.last_switch_time > 0 else self.switch_cooldown + 1
+        if time_since_switch < self.switch_cooldown:
+            remaining = int(self.switch_cooldown - time_since_switch)
             return (False, "", f"cooldown: {remaining}s remaining")
         
         if not self.node_metrics:
@@ -709,9 +711,9 @@ class VPNSwitcher:
                 return (True, best_name, "current node not evaluated")
             return (False, "", "current node not evaluated, best score too low")
         
-        # Switch if significantly better (score diff > 15, was 10)
+        # Switch if significantly better (score diff > 10 for web/video)
         score_diff = best_metrics.overall_score - current.overall_score
-        if score_diff > 15:
+        if score_diff > 10:
             return (True, best_name, f"score diff: {score_diff:.1f}")
         
         # Or if current is bad
