@@ -684,7 +684,7 @@ class VPNSwitcher:
         self._evaluating = False
     
     def should_switch(self) -> tuple[bool, str, str]:
-        """Determine if we should switch to a better node"""
+        """Smart switching logic for web browsing/video streaming"""
         if not self.auto_switch_enabled:
             return (False, "", "auto mode disabled")
         
@@ -711,16 +711,37 @@ class VPNSwitcher:
                 return (True, best_name, "current node not evaluated")
             return (False, "", "current node not evaluated, best score too low")
         
-        # Switch if significantly better (score diff > 10 for web/video)
+        # === Smart Switching Logic ===
+        
+        # Rule 1: Current node is dead -> switch immediately
+        if not current.alive:
+            return (True, best_name, "current node dead")
+        
+        # Rule 2: Current node high latency (>500ms) and better option exists
+        if current.delay_ms > 500 and best_metrics.delay_ms < current.delay_ms * 0.7:
+            return (True, best_name, f"high latency: {current.delay_ms:.0f}ms → {best_metrics.delay_ms:.0f}ms")
+        
+        # Rule 3: Current node has packet loss and better option is clean
+        if current.packet_loss > 2 and best_metrics.packet_loss < 0.5:
+            return (True, best_name, f"packet loss: {current.packet_loss:.1f}% → {best_metrics.packet_loss:.1f}%")
+        
+        # Rule 4: Smart score comparison with context
+        # Don't switch if current is already good (<150ms)
+        if current.delay_ms < 150:
+            return (False, "", f"current good enough: {current.delay_ms:.0f}ms")
+        
+        # Switch if significant improvement considering current state
         score_diff = best_metrics.overall_score - current.overall_score
-        if score_diff > 10:
-            return (True, best_name, f"score diff: {score_diff:.1f}")
         
-        # Or if current is bad
-        if not current.alive and best_metrics.alive:
-            return (True, best_name, "current dead, switching to alive")
+        # If current is mediocre (150-300ms), need >10 improvement
+        if 150 <= current.delay_ms < 300 and score_diff > 10:
+            return (True, best_name, f"mediocre→good: {score_diff:.1f}pts")
         
-        return (False, "", f"no significant improvement (diff: {score_diff:.1f})")
+        # If current is bad (>300ms), need >5 improvement
+        if current.delay_ms >= 300 and score_diff > 5:
+            return (True, best_name, f"bad→better: {score_diff:.1f}pts")
+        
+        return (False, "", f"no need: {current.delay_ms:.0f}ms, diff:{score_diff:.1f}")
     
     def switch_to_node(self, node_name: str) -> tuple[bool, str]:
         """Switch to specified node with verification"""
