@@ -2677,3 +2677,225 @@ INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
 INFO:     Finished server process [40370]
+/Users/zhuanzmima0000/.mom/workspace/vpn-dashboard/src/vpn_dashboard/main.py:983: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [5310]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
+[MihomoAPI] Using Unix socket: /tmp/mihomo-party-501-3205.sock
+[Init] Proxy port: 7890
+[Init] Found 3 selector groups:
+  - GLOBAL
+  - 狗狗加速.com
+  - ♻️自动选择
+[Startup] Starting initial node evaluation...
+[Eval] Total unique nodes from 3 groups: 42
+[Eval] 🇯🇵7日本-联通/移动(AnyTLS): delay=714ms, no IP, no BW, score=36.9
+[Eval] 🇦🇺19澳洲-移动优化(AnyTLS): delay=1927ms, no IP, no BW, score=57.0
+[Eval] 🇹🇷22土耳其-全网优化(Tuic): delay=1098ms, no IP, no BW, score=57.3
+[Eval] 🇨🇦18加拿大-全网优化(AnyTLS): delay=1916ms, no IP, no BW, score=57.2
+[Eval] 5台湾-联通/移动(AnyTLS): delay=9999ms, no IP, no BW, score=22.1
+[Eval] 🇸🇬24新加坡-联通/移动(AnyTLS): delay=2020ms, no IP, no BW, score=57.2
+[Eval] 🇨🇦26加拿大-全网优化(AnyTLS): delay=1638ms, no IP, no BW, score=37.2
+[Eval] 🇰🇷25韩国-全网优化(AnyTLS): delay=2194ms, no IP, no BW, score=57.1
+[Eval] 🇩🇪16德国-电信/联通(AnyTLS): delay=705ms, no IP, no BW, score=37.1
+[Eval] 🇪🇸31西班牙-全网优化(AnyTLS): delay=634ms, no IP, no BW, score=56.9
+[Eval] 🇯🇵10日本-全网优化(AnyTLS): delay=246ms, no IP, no BW, score=63.0
+[Eval] 🇧🇷20巴西-全网优化(AnyTLS): delay=1487ms, no IP, no BW, score=56.9
+[Eval] 🇳🇱28荷兰-全网优化(AnyTLS): delay=1139ms, no IP, no BW, score=57.0
+[Eval] 🇺🇦40乌克兰-全网优化(AnyTLS): delay=958ms, no IP, no BW, score=56.8
+[Eval] 🇭🇰3香港集群-全网优化(AnyTLS): delay=3351ms, no IP, no BW, score=56.9
+[Eval] 4台湾-联通优化(AnyTLS): delay=252ms, no IP, no BW, score=62.8
+[Eval] 🇰🇷8韩国集群-全网优化(AnyTLS): delay=927ms, no IP, no BW, score=56.7
+[Eval] 🇷🇺32俄罗斯-全网优化(AnyTLS): delay=492ms, no IP, no BW, score=52.2
+[Eval] 🇺🇸11美国西集群-全网优化(AnyTLS): delay=2142ms, no IP, no BW, score=37.4
+[Eval] 🇿🇦43南非-约翰内斯堡(AnyTLS): delay=1206ms, no IP, no BW, score=56.7
+[Eval] 🇺🇸12美国旧金山-全网优化(AnyTLS): delay=4246ms, no IP, no BW, score=37.0
+[Eval] 🇨🇭41瑞士-全网优化(AnyTLS): delay=759ms, no IP, no BW, score=57.2
+[Eval] 🇲🇽27墨西哥-全网优化(AnyTLS): delay=2057ms, no IP, no BW, score=57.4
+[Eval] 🇺🇸29美国旧金山-全网优化(AnyTLS): delay=1059ms, no IP, no BW, score=57.2
+[Eval] 🇫🇷23法国-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=42.0
+[Eval] 🇭🇰1香港集群-全网优化(AnyTLS): delay=771ms, no IP, no BW, score=56.8
+[Eval] 🇮🇱30以色列-全网优化(AnyTLS): delay=1361ms, no IP, no BW, score=36.9
+[Eval] 🇭🇰2香港集群-全网优化(AnyTLS): delay=2171ms, no IP, no BW, score=57.1
+[Eval] AnyTLS: delay=500ms, no IP, no BW, score=36.6
+[Eval] 🔥ChatGPT: delay=248ms, no IP, no BW, score=63.1
+[Eval] 🇬🇧17英国-全网优化(AnyTLS): delay=777ms, no IP, no BW, score=57.2
+[Eval] Tuic: delay=9999ms, no IP, no BW, score=21.9
+[Eval] 🇸🇬15新加坡-全网优化(AnyTLS): delay=3600ms, no IP, no BW, score=57.1
+[Eval] 🇺🇸39美国华盛顿-全网优化(AnyTLS): delay=973ms, no IP, no BW, score=37.1
+[Eval] 🇮🇳14印度-移动/南方联通(AnyTLS): delay=9999ms, no IP, no BW, score=21.7
+[Eval] 🇰🇷9韩国-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=42.0
+[Eval] 🇷🇺32俄罗斯-全网优化(Tuic): delay=715ms, no IP, no BW, score=56.8
+[Eval] 🇨🇦26加拿大-全网优化(Tuic): delay=9999ms, no IP, no BW, score=42.3
+[Eval] 🇦🇪13迪拜-电信/移动/南方联通(AnyTLS): delay=9999ms, no IP, no BW, score=41.9
+[Eval] 🇹🇷22土耳其-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=22.3
+[Eval] 🇨🇱21智利-全网优化(AnyTLS): delay=2396ms, no IP, no BW, score=57.1
+[Eval] 42台湾-专线(AnyTLS): delay=248ms, Osaka, Japan, no BW, score=68.1
+[Startup] Initial evaluation complete: 42 nodes
+[IP Refresh] Current: 2001:e42:102:1505:160:16:58:42 (Chiyoda City, Japan)
+[Re-eval] Starting periodic node re-evaluation...
+[Eval] Total unique nodes from 3 groups: 42
+[Eval] 🇯🇵7日本-联通/移动(AnyTLS): delay=1530ms, no IP, no BW, score=56.9
+[Eval] 🇦🇺19澳洲-移动优化(AnyTLS): delay=2149ms, no IP, no BW, score=56.7
+[Eval] 🇹🇷22土耳其-全网优化(Tuic): delay=257ms, no IP, no BW, score=61.8
+[Eval] 5台湾-联通/移动(AnyTLS): delay=9999ms, no IP, no BW, score=41.7
+[Eval] 🇨🇦18加拿大-全网优化(AnyTLS): delay=1473ms, no IP, no BW, score=36.2
+[Eval] 🇸🇬24新加坡-联通/移动(AnyTLS): delay=1782ms, no IP, no BW, score=56.7
+[Eval] 🇨🇦26加拿大-全网优化(AnyTLS): delay=580ms, no IP, no BW, score=56.9
+[Eval] 🇩🇪16德国-电信/联通(AnyTLS): delay=600ms, no IP, no BW, score=56.7
+[Eval] 🇰🇷25韩国-全网优化(AnyTLS): delay=1970ms, no IP, no BW, score=56.6
+[Eval] 🇪🇸31西班牙-全网优化(AnyTLS): delay=723ms, no IP, no BW, score=36.7
+[Eval] 🇯🇵10日本-全网优化(AnyTLS): delay=244ms, no IP, no BW, score=43.3
+[Eval] 🇳🇱28荷兰-全网优化(AnyTLS): delay=1089ms, no IP, no BW, score=57.0
+[Eval] 🇭🇰3香港集群-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=56.4
+[Eval] 🇧🇷20巴西-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=36.9
+[Eval] 🇺🇦40乌克兰-全网优化(AnyTLS): delay=757ms, no IP, no BW, score=56.6
+[IP Refresh] Current: 2001:e42:102:1814:160:16:224:6 (Chiyoda City, Japan)
+[Eval] 🇰🇷8韩国集群-全网优化(AnyTLS): delay=1268ms, no IP, no BW, score=56.6
+[Eval] 🇺🇸12美国旧金山-全网优化(AnyTLS): delay=1778ms, no IP, no BW, score=56.8
+[Eval] 🇺🇸11美国西集群-全网优化(AnyTLS): delay=524ms, no IP, no BW, score=56.6
+[Eval] 4台湾-联通优化(AnyTLS): delay=3605ms, no IP, no BW, score=56.8
+[Eval] 🇷🇺32俄罗斯-全网优化(AnyTLS): delay=1560ms, no IP, no BW, score=56.7
+[Eval] 🇲🇽27墨西哥-全网优化(AnyTLS): delay=660ms, no IP, no BW, score=56.7
+[Eval] 🇿🇦43南非-约翰内斯堡(AnyTLS): delay=1913ms, no IP, no BW, score=56.8
+[Eval] 🇺🇸29美国旧金山-全网优化(AnyTLS): delay=738ms, no IP, no BW, score=56.9
+[Eval] 🇮🇱30以色列-全网优化(AnyTLS): delay=646ms, no IP, no BW, score=56.9
+[Eval] 🇨🇭41瑞士-全网优化(AnyTLS): delay=719ms, no IP, no BW, score=36.9
+[Eval] 🇫🇷23法国-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=41.2
+[Eval] AnyTLS: delay=520ms, no IP, no BW, score=56.8
+[Eval] 🇭🇰2香港集群-全网优化(AnyTLS): delay=1824ms, no IP, no BW, score=56.8
+[Eval] 🇭🇰1香港集群-全网优化(AnyTLS): delay=2149ms, no IP, no BW, score=56.7
+[Eval] 🔥ChatGPT: delay=244ms, no IP, no BW, score=63.3
+[Eval] 🇬🇧17英国-全网优化(AnyTLS): delay=647ms, no IP, no BW, score=56.7
+[Eval] Tuic: delay=9999ms, no IP, no BW, score=20.7
+[Eval] 🇸🇬15新加坡-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=56.8
+[Eval] 🇮🇳14印度-移动/南方联通(AnyTLS): delay=1052ms, no IP, no BW, score=43.1
+[Eval] 🇺🇸39美国华盛顿-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=56.8
+[Eval] 🇰🇷9韩国-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=20.7
+[Eval] 🇨🇦26加拿大-全网优化(Tuic): delay=9999ms, no IP, no BW, score=41.7
+[IP Refresh] Current: 2001:e42:102:1505:160:16:58:42 (Chiyoda City, Japan)
+[Eval] 🇷🇺32俄罗斯-全网优化(Tuic): delay=1625ms, no IP, no BW, score=56.7
+[Eval] 🇨🇱21智利-全网优化(AnyTLS): delay=2597ms, no IP, no BW, score=56.7
+[Eval] 🇹🇷22土耳其-全网优化(AnyTLS): delay=1708ms, no IP, no BW, score=43.3
+[Eval] 🇦🇪13迪拜-电信/移动/南方联通(AnyTLS): delay=3098ms, no IP, no BW, score=43.3
+[Eval] 42台湾-专线(AnyTLS): delay=244ms, Chiyoda City, Japan, no BW, score=48.2
+[Re-eval] Completed. Evaluated 42 nodes
+[SmartTrigger] High packet loss detected: 20.0%, triggering re-eval
+[Eval] Total unique nodes from 3 groups: 42
+[Eval] 🇦🇺19澳洲-移动优化(AnyTLS): delay=927ms, no IP, no BW, score=56.8
+[AutoSwitch] Reason: packet loss: 20.0% → 0.0%
+[Switch] Warning: IP unchanged (160.16.224.6), but node switched to 🔥ChatGPT
+[AutoSwitch] Result: switched to 🔥ChatGPT, IP: 160.16.224.6 (Tokyo, Japan)
+[Eval] 🇯🇵7日本-联通/移动(AnyTLS): delay=1376ms, no IP, no BW, score=37.1
+[Eval] 🇨🇦18加拿大-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=36.7
+[Eval] 5台湾-联通/移动(AnyTLS): delay=9999ms, no IP, no BW, score=21.6
+[Eval] 🇹🇷22土耳其-全网优化(Tuic): delay=297ms, no IP, no BW, score=57.1
+[Eval] 🇰🇷25韩国-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=56.7
+[Eval] 🇨🇦26加拿大-全网优化(AnyTLS): delay=2132ms, no IP, no BW, score=56.8
+[Eval] 🇸🇬24新加坡-联通/移动(AnyTLS): delay=2523ms, no IP, no BW, score=56.7
+[Eval] 🇩🇪16德国-电信/联通(AnyTLS): delay=627ms, no IP, no BW, score=57.2
+[Eval] 🇪🇸31西班牙-全网优化(AnyTLS): delay=899ms, no IP, no BW, score=56.6
+[Eval] 🇧🇷20巴西-全网优化(AnyTLS): delay=1491ms, no IP, no BW, score=50.7
+[Eval] 🇯🇵10日本-全网优化(AnyTLS): delay=673ms, no IP, no BW, score=56.7
+[Eval] 🇺🇦40乌克兰-全网优化(AnyTLS): delay=853ms, no IP, no BW, score=56.5
+[Eval] 🇭🇰3香港集群-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=45.7
+[IP Refresh] Current: 160.16.224.6 (Osaka, Japan)
+[Eval] 🇰🇷8韩国集群-全网优化(AnyTLS): delay=1499ms, no IP, no BW, score=55.5
+[Eval] 🇳🇱28荷兰-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=56.0
+[Eval] 4台湾-联通优化(AnyTLS): delay=1315ms, no IP, no BW, score=55.7
+[Eval] 🇷🇺32俄罗斯-全网优化(AnyTLS): delay=1024ms, no IP, no BW, score=52.0
+[Eval] 🇺🇸11美国西集群-全网优化(AnyTLS): delay=1591ms, no IP, no BW, score=55.4
+[Eval] 🇺🇸12美国旧金山-全网优化(AnyTLS): delay=1420ms, no IP, no BW, score=36.6
+[Eval] 🇨🇭41瑞士-全网优化(AnyTLS): delay=659ms, no IP, no BW, score=56.8
+[Eval] 🇿🇦43南非-约翰内斯堡(AnyTLS): delay=1235ms, no IP, no BW, score=55.9
+[Eval] 🇮🇱30以色列-全网优化(AnyTLS): delay=611ms, no IP, no BW, score=56.9
+[Eval] 🇲🇽27墨西哥-全网优化(AnyTLS): delay=3448ms, no IP, no BW, score=56.0
+[Eval] 🇺🇸29美国旧金山-全网优化(AnyTLS): delay=746ms, no IP, no BW, score=36.3
+[Eval] 🇫🇷23法国-全网优化(AnyTLS): delay=792ms, no IP, no BW, score=42.8
+[Eval] AnyTLS: delay=400ms, no IP, no BW, score=55.9
+[Eval] 🇭🇰2香港集群-全网优化(AnyTLS): delay=4022ms, no IP, no BW, score=56.5
+[Eval] 🇭🇰1香港集群-全网优化(AnyTLS): delay=4334ms, no IP, no BW, score=56.6
+[Eval] 42台湾-专线(AnyTLS): delay=270ms, Chiyoda City, Japan, no BW, score=59.1
+[Eval] 🇬🇧17英国-全网优化(AnyTLS): delay=549ms, no IP, no BW, score=56.9
+[Eval] Tuic: delay=9999ms, no IP, no BW, score=41.6
+[Eval] 🇸🇬15新加坡-全网优化(AnyTLS): delay=357ms, no IP, no BW, score=51.0
+[Eval] 🇮🇳14印度-移动/南方联通(AnyTLS): delay=260ms, no IP, no BW, score=35.3
+[Eval] 🇺🇸39美国华盛顿-全网优化(AnyTLS): delay=2578ms, no IP, no BW, score=50.7
+[Eval] 🇰🇷9韩国-全网优化(AnyTLS): delay=244ms, no IP, no BW, score=49.7
+[Eval] 🇷🇺32俄罗斯-全网优化(Tuic): delay=1491ms, no IP, no BW, score=56.7
+[Eval] 🇨🇱21智利-全网优化(AnyTLS): delay=1443ms, no IP, no BW, score=56.8
+[Eval] 🇨🇦26加拿大-全网优化(Tuic): delay=9999ms, no IP, no BW, score=41.8
+[Re-eval] Starting periodic node re-evaluation...
+[Re-eval] Completed. Evaluated 42 nodes
+[Eval] 🇹🇷22土耳其-全网优化(AnyTLS): delay=258ms, no IP, no BW, score=55.8
+[Eval] 🇦🇪13迪拜-电信/移动/南方联通(AnyTLS): delay=466ms, no IP, no BW, score=50.8
+[IP Refresh] Current: 160.16.224.6 (Tokyo, Japan)
+[Eval] 🔥ChatGPT: delay=267ms, Chiyoda City, Japan, no BW, score=59.9
+[IP Refresh] Current: 160.16.58.42 (Tokyo, Japan)
+[Re-eval] Starting periodic node re-evaluation...
+[Eval] Total unique nodes from 3 groups: 42
+[Eval] 🇦🇺19澳洲-移动优化(AnyTLS): delay=2351ms, no IP, no BW, score=56.6
+[Eval] 🇯🇵7日本-联通/移动(AnyTLS): delay=2723ms, no IP, no BW, score=56.8
+[Eval] 🇹🇷22土耳其-全网优化(Tuic): delay=293ms, no IP, no BW, score=37.5
+[Eval] 🇨🇦18加拿大-全网优化(AnyTLS): delay=1902ms, no IP, no BW, score=53.3
+[Eval] 5台湾-联通/移动(AnyTLS): delay=9999ms, no IP, no BW, score=21.6
+[Eval] 🇰🇷25韩国-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=51.9
+[Eval] 🇨🇦26加拿大-全网优化(AnyTLS): delay=1330ms, no IP, no BW, score=36.7
+[Eval] 🇩🇪16德国-电信/联通(AnyTLS): delay=624ms, no IP, no BW, score=56.8
+[Eval] 🇸🇬24新加坡-联通/移动(AnyTLS): delay=3613ms, no IP, no BW, score=56.9
+[Eval] 🇪🇸31西班牙-全网优化(AnyTLS): delay=654ms, no IP, no BW, score=56.7
+[Eval] 🇧🇷20巴西-全网优化(AnyTLS): delay=1487ms, no IP, no BW, score=53.2
+[Eval] 🇯🇵10日本-全网优化(AnyTLS): delay=302ms, no IP, no BW, score=53.3
+[Eval] 🇺🇦40乌克兰-全网优化(AnyTLS): delay=629ms, no IP, no BW, score=56.7
+[Eval] 🇭🇰3香港集群-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=46.8
+[Eval] 4台湾-联通优化(AnyTLS): delay=390ms, no IP, no BW, score=56.8
+[Eval] 🇳🇱28荷兰-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=51.8
+[Eval] 🇰🇷8韩国集群-全网优化(AnyTLS): delay=3829ms, no IP, no BW, score=56.8
+[Eval] 🇺🇸12美国旧金山-全网优化(AnyTLS): delay=595ms, no IP, no BW, score=56.8
+[Eval] 🇺🇸11美国西集群-全网优化(AnyTLS): delay=1173ms, no IP, no BW, score=56.8
+[IP Refresh] Current: 160.16.58.42 (Tokyo, Japan)
+[Eval] 🇷🇺32俄罗斯-全网优化(AnyTLS): delay=487ms, no IP, no BW, score=36.8
+[Eval] 🇿🇦43南非-约翰内斯堡(AnyTLS): delay=1175ms, no IP, no BW, score=56.6
+[Eval] 🇲🇽27墨西哥-全网优化(AnyTLS): delay=1217ms, no IP, no BW, score=56.9
+[Eval] 🇨🇭41瑞士-全网优化(AnyTLS): delay=682ms, no IP, no BW, score=56.8
+[Eval] 🇺🇸29美国旧金山-全网优化(AnyTLS): delay=718ms, no IP, no BW, score=56.8
+[Eval] 🇮🇱30以色列-全网优化(AnyTLS): delay=780ms, no IP, no BW, score=56.7
+[Eval] 🇭🇰2香港集群-全网优化(AnyTLS): delay=1523ms, no IP, no BW, score=56.3
+[Eval] 🇫🇷23法国-全网优化(AnyTLS): delay=1742ms, no IP, no BW, score=48.2
+[Eval] 🇭🇰1香港集群-全网优化(AnyTLS): delay=2092ms, no IP, no BW, score=56.8
+[Eval] AnyTLS: delay=492ms, no IP, no BW, score=36.7
+[Eval] 42台湾-专线(AnyTLS): delay=537ms, Chiyoda City, Japan, no BW, score=61.5
+[Eval] 🇬🇧17英国-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=36.7
+[Eval] Tuic: delay=9999ms, no IP, no BW, score=21.4
+[Eval] 🇸🇬15新加坡-全网优化(AnyTLS): delay=693ms, no IP, no BW, score=53.3
+[Eval] 🇮🇳14印度-移动/南方联通(AnyTLS): delay=735ms, no IP, no BW, score=53.4
+[Eval] 🇺🇸39美国华盛顿-全网优化(AnyTLS): delay=1613ms, no IP, no BW, score=53.5
+[Eval] 🇨🇦26加拿大-全网优化(Tuic): delay=9999ms, no IP, no BW, score=41.8
+[Eval] 🇰🇷9韩国-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=26.9
+[Eval] 🇷🇺32俄罗斯-全网优化(Tuic): delay=932ms, no IP, no BW, score=56.8
+[Eval] 🇨🇱21智利-全网优化(AnyTLS): delay=2114ms, no IP, no BW, score=56.7
+[Eval] 🇦🇪13迪拜-电信/移动/南方联通(AnyTLS): delay=1102ms, no IP, no BW, score=53.2
+[Eval] 🇹🇷22土耳其-全网优化(AnyTLS): delay=9999ms, no IP, no BW, score=31.6
+[IP Refresh] Current: 2001:e42:102:1505:160:16:58:42 (Chiyoda City, Japan)
+[Eval] 🔥ChatGPT: delay=684ms, Chiyoda City, Japan, no BW, score=61.8
+[Re-eval] Completed. Evaluated 42 nodes
+[SmartTrigger] High latency detected: 684ms, triggering re-eval
+[Eval] Total unique nodes from 3 groups: 42
+[Eval] 🇯🇵7日本-联通/移动(AnyTLS): delay=1638ms, no IP, no BW, score=56.6
+[Eval] 🇦🇺19澳洲-移动优化(AnyTLS): delay=2125ms, no IP, no BW, score=56.8
+[Eval] 🇨🇦18加拿大-全网优化(AnyTLS): delay=648ms, no IP, no BW, score=54.4
+[Eval] 🇹🇷22土耳其-全网优化(Tuic): delay=287ms, no IP, no BW, score=58.3
+[Eval] 5台湾-联通/移动(AnyTLS): delay=9999ms, no IP, no BW, score=21.8
+[Eval] 🇨🇦26加拿大-全网优化(AnyTLS): delay=804ms, no IP, no BW, score=36.2
+[Eval] 🇸🇬24新加坡-联通/移动(AnyTLS): delay=3034ms, no IP, no BW, score=57.1
+[Eval] 🇰🇷25韩国-全网优化(AnyTLS): delay=1024ms, no IP, no BW, score=50.8INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [5310]
