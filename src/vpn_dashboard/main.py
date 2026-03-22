@@ -189,25 +189,44 @@ class NetworkTester:
 class MihomoAPI:
     """Mihomo API wrapper - supports both TCP and Unix socket"""
     BASE_URL = "http://127.0.0.1:9090"
-    SOCKET_PATH = "/tmp/mihomo-party-501-1574.sock"
     PROXY_PORT = "7890"
     _use_socket: Optional[bool] = None
+    _socket_path: Optional[str] = None
+    
+    @classmethod
+    def _find_socket_path(cls) -> Optional[str]:
+        """Find the current Mihomo socket path"""
+        import glob
+        import os
+        
+        # Look for mihomo-party sockets
+        sockets = glob.glob("/tmp/mihomo-party-*.sock")
+        if sockets:
+            # Return the most recently modified socket
+            return max(sockets, key=os.path.getmtime)
+        return None
     
     @classmethod
     def _use_unix_socket(cls) -> bool:
         """Detect if we should use Unix socket"""
         if cls._use_socket is None:
             import socket
-            try:
-                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                sock.settimeout(2)
-                sock.connect(cls.SOCKET_PATH)
-                sock.close()
-                cls._use_socket = True
-                print(f"[MihomoAPI] Using Unix socket: {cls.SOCKET_PATH}")
-            except Exception as e:
+            socket_path = cls._find_socket_path()
+            if socket_path:
+                try:
+                    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                    sock.settimeout(2)
+                    sock.connect(socket_path)
+                    sock.close()
+                    cls._use_socket = True
+                    cls._socket_path = socket_path
+                    print(f"[MihomoAPI] Using Unix socket: {socket_path}")
+                except Exception as e:
+                    cls._use_socket = False
+                    print(f"[MihomoAPI] Using TCP: {cls.BASE_URL} (socket failed: {e})")
+            else:
                 cls._use_socket = False
-                print(f"[MihomoAPI] Using TCP: {cls.BASE_URL} (socket failed: {e})")
+                print(f"[MihomoAPI] Using TCP: {cls.BASE_URL} (no socket found)")
         return cls._use_socket
     
     @classmethod
@@ -219,7 +238,10 @@ class MihomoAPI:
             try:
                 import requests_unixsocket
                 # Encode socket path for URL
-                encoded_path = cls.SOCKET_PATH.replace('/', '%2F')
+                socket_path = cls._socket_path or cls._find_socket_path()
+                if not socket_path:
+                    raise Exception("No socket path found")
+                encoded_path = socket_path.replace('/', '%2F')
                 url = f"http+unix://{encoded_path}{path}"
                 
                 session = requests_unixsocket.Session()
@@ -247,9 +269,13 @@ class MihomoAPI:
         import json
         
         try:
+            socket_path = cls._socket_path or cls._find_socket_path()
+            if not socket_path:
+                raise Exception("No socket path found")
+            
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             sock.settimeout(kwargs.get('timeout', 5))
-            sock.connect(cls.SOCKET_PATH)
+            sock.connect(socket_path)
             
             # Build path with query params
             full_path = path
