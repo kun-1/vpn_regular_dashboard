@@ -467,7 +467,7 @@ class VPNSwitcher:
     """Main VPN switching logic with IP verification"""
     
     def __init__(self):
-        self.proxy_group: Optional[str] = None  # Will be auto-detected
+        self.proxy_groups: List[str] = []  # Multiple subscription groups
         self.node_metrics: dict[str, NodeMetrics] = {}
         self.latency_history: deque = deque(maxlen=100)
         self.current_node: str = ""
@@ -481,22 +481,53 @@ class VPNSwitcher:
         self.node_ip_cache: dict[str, IPInfo] = {}  # Cache node IPs
         
     async def initialize(self):
-        """Initialize proxy port and detect selector group"""
+        """Initialize proxy port and detect selector groups"""
         self.proxy_port = MihomoAPI.get_proxy_port()
         print(f"[Init] Proxy port: {self.proxy_port}")
         
-        # Auto-detect selector group
-        self.proxy_group = MihomoAPI._find_best_selector()
-        if self.proxy_group:
-            print(f"[Init] Detected selector group: {self.proxy_group}")
+        # Find all subscription groups (multiple selectors)
+        self.proxy_groups = self._find_all_selectors()
+        if self.proxy_groups:
+            print(f"[Init] Found {len(self.proxy_groups)} selector groups:")
+            for g in self.proxy_groups:
+                print(f"  - {g}")
         else:
-            print("[Init] Warning: No selector group found!")
+            print("[Init] Warning: No selector groups found!")
+    
+    def _find_all_selectors(self) -> List[str]:
+        """Find all selector/URLTest groups from all subscriptions"""
+        try:
+            proxies = MihomoAPI.get_all_proxies()
+            
+            # Get all selectable groups with sufficient nodes
+            selectable_types = ['Selector', 'URLTest', 'Fallback']
+            groups = []
+            for name, info in proxies.items():
+                if info.get('type') in selectable_types:
+                    node_count = len(info.get('all', []))
+                    if node_count >= 10:  # At least 10 nodes
+                        groups.append((name, node_count))
+            
+            # Sort by node count (descending)
+            groups.sort(key=lambda x: -x[1])
+            
+            # Return top groups (up to 3)
+            return [g[0] for g in groups[:3]]
+        except Exception as e:
+            print(f"[VPNSwitcher] _find_all_selectors failed: {e}")
+            return []
+    
+    @property
+    def proxy_group(self) -> Optional[str]:
+        """Primary proxy group (first in list)"""
+        return self.proxy_groups[0] if self.proxy_groups else None
     
     def get_current_node(self) -> str:
-        """Get currently selected node"""
-        if not self.proxy_group:
-            self.proxy_group = MihomoAPI._find_best_selector()
-        group = MihomoAPI.get_proxy_group(self.proxy_group)
+        """Get currently selected node from primary group"""
+        primary = self.proxy_group
+        if not primary:
+            return ""
+        group = MihomoAPI.get_proxy_group(primary)
         return group.get("now", "")
     
     def get_current_ip(self) -> Optional[IPInfo]:
@@ -625,30 +656,33 @@ class VPNSwitcher:
         metrics.history = history
     
     async def evaluate_all_nodes(self):
-        """Evaluate all nodes in parallel"""
+        """Evaluate all nodes from all subscription groups"""
         if self._evaluating:
             return
         
         self._evaluating = True
         self.current_node = self.get_current_node()
         
-        group = MihomoAPI.get_proxy_group(self.proxy_group)
         all_proxies = MihomoAPI.get_all_proxies()
         
-        # Filter: exclude REJECT, DIRECT, and nested groups
-        nodes = []
-        for n in group.get("all", []):
-            if n in ["REJECT", "DIRECT"]:
-                continue
-            # Skip nested groups by name patterns
-            skip_patterns = [
-                '自动最优', '自动选择', '故障转移', '负载均衡', 
-                '狗狗加速', '官网:', '网址:', '🌏自动'
-            ]
-            if any(p in n for p in skip_patterns):
-                print(f"[Eval] Skipping nested group: {n}")
-                continue
-            nodes.append(n)
+        # Collect nodes from all subscription groups
+        all_nodes = set()
+        for group_name in self.proxy_groups:
+            group = MihomoAPI.get_proxy_group(group_name)
+            for n in group.get("all", []):
+                if n in ["REJECT", "DIRECT"]:
+                    continue
+                # Skip nested groups by name patterns
+                skip_patterns = [
+                    '自动最优', '自动选择', '故障转移', '负载均衡', 
+                    '狗狗加速', '官网:', '网址:', '🌏自动'
+                ]
+                if any(p in n for p in skip_patterns):
+                    continue
+                all_nodes.add(n)
+        
+        nodes = list(all_nodes)
+        print(f"[Eval] Total unique nodes from {len(self.proxy_groups)} groups: {len(nodes)}")
         
         # Evaluate in parallel with semaphore
         semaphore = asyncio.Semaphore(3)  # Reduced from 5 to be gentler
@@ -755,8 +789,8 @@ class VPNSwitcher:
             old_ip = self.get_current_ip()
             old_ip_str = old_ip.ip if old_ip else "unknown"
             
-            # Step 2: Call API to switch
-            if not MihomoAPI.switch_node(node_name, self.proxy_group):
+            # Step 2: Call API to switch (use primary group)
+            if not MihomoAPI.switch_node(node_name, self.proxy_group or "♻️自动选择"):
                 return (False, "API switch failed")
             
             # Step 3: Wait for connection
@@ -833,7 +867,7 @@ async def current():
         score = cached.overall_score
         status = cached.status
     else:
-        delay = MihomoAPI.test_delay(switcher.proxy_group)
+        delay = MihomoAPI.test_delay(switcher.proxy_group or "♻️自动选择")
         packet_loss = 0
         jitter = 0
         score = 0
