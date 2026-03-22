@@ -504,7 +504,7 @@ class VPNSwitcher:
         proxy_url = f"http://127.0.0.1:{self.proxy_port}"
         return IPDetector.get_current_ip(proxy_url)
     
-    def evaluate_node(self, node_name: str) -> NodeMetrics:
+    def evaluate_node(self, node_name: str, test_bandwidth: bool = False) -> NodeMetrics:
         """Evaluate a single node comprehensively"""
         # Test delay via API
         delay = MihomoAPI.test_node_delay(node_name)
@@ -516,8 +516,19 @@ class VPNSwitcher:
         final_delay = max(delay, ping_delay)
         alive = final_delay < 9999
         
-        # Get cached IP info (we don't test each node's IP during evaluation - too slow)
-        ip_info = self.node_ip_cache.get(node_name)
+        # Get IP info for current node only (too slow for all nodes)
+        ip_info = None
+        if node_name == self.current_node:
+            ip_info = self.get_current_ip()
+            if ip_info:
+                self.node_ip_cache[node_name] = ip_info
+        else:
+            ip_info = self.node_ip_cache.get(node_name)
+        
+        # Test bandwidth only for current node (very slow)
+        bandwidth = None
+        if test_bandwidth and node_name == self.current_node:
+            bandwidth = NetworkTester.test_bandwidth()
         
         # Calculate scores - IMPROVED ALGORITHM
         # Higher weight on delay (user experience)
@@ -531,13 +542,17 @@ class VPNSwitcher:
         # NEW: Geographic score (prefer certain regions)
         geo_score = self._calculate_geo_score(ip_info)
         
+        # Bandwidth score (only if tested)
+        bandwidth_score = min(100, bandwidth * 2) if bandwidth else 50
+        
         # Weighted overall score - IMPROVED
         overall_score = (
-            0.40 * delay_score +      # Was 0.30, delay most important
-            0.20 * loss_score +       # Was 0.25
-            0.15 * jitter_score +     # Was 0.15
-            0.15 * stability_score +  # NEW: stability history
-            0.10 * geo_score          # NEW: geography preference
+            0.35 * delay_score +      # Was 0.40
+            0.20 * loss_score +       
+            0.15 * jitter_score +     
+            0.15 * stability_score +  
+            0.10 * geo_score +        
+            0.05 * bandwidth_score    # NEW: bandwidth (small weight)
         )
         
         # Get history for this node
@@ -548,7 +563,7 @@ class VPNSwitcher:
             delay_ms=final_delay,
             packet_loss=packet_loss,
             jitter_ms=jitter,
-            bandwidth_mbps=None,  # Remove bandwidth test (slow and unreliable)
+            bandwidth_mbps=bandwidth,
             stability_score=stability_score,
             alive=alive,
             overall_score=overall_score,
@@ -638,10 +653,14 @@ class VPNSwitcher:
         async def evaluate_with_limit(node_name: str):
             async with semaphore:
                 loop = asyncio.get_event_loop()
-                metrics = await loop.run_in_executor(None, self.evaluate_node, node_name)
+                # Only test bandwidth for current node (very slow)
+                test_bw = node_name == self.current_node
+                metrics = await loop.run_in_executor(None, self.evaluate_node, node_name, test_bw)
                 self._update_history(node_name, metrics)
                 self.node_metrics[node_name] = metrics
-                print(f"[Eval] {node_name}: delay={metrics.delay_ms:.0f}ms, score={metrics.overall_score:.1f}")
+                ip_str = metrics.ip_info.location_str if metrics.ip_info else "no IP"
+                bw_str = f"{metrics.bandwidth_mbps:.1f}Mbps" if metrics.bandwidth_mbps else "no BW"
+                print(f"[Eval] {node_name}: delay={metrics.delay_ms:.0f}ms, {ip_str}, {bw_str}, score={metrics.overall_score:.1f}")
                 return node_name
         
         await asyncio.gather(*[evaluate_with_limit(n) for n in nodes])
@@ -807,6 +826,7 @@ async def current():
             "delay": delay if delay < 9999 else 0,
             "packet_loss": packet_loss,
             "jitter": jitter,
+            "bandwidth": cached.bandwidth_mbps if cached else None,
             "score": score,
             "status": status
         },
@@ -833,6 +853,7 @@ async def nodes():
             "delay_ms": node.delay_ms,
             "packet_loss": node.packet_loss,
             "jitter_ms": node.jitter_ms,
+            "bandwidth_mbps": node.bandwidth_mbps,
             "score": node.overall_score,
             "status": node.status,
             "alive": node.alive,

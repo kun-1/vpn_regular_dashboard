@@ -64,6 +64,11 @@
                             <span class="metric-unit">ms</span>
                             <span class="metric-label">抖动</span>
                         </div>
+                        <div class="metric-card" id="metric-bandwidth">
+                            <span class="metric-value" id="current-bandwidth">--</span>
+                            <span class="metric-unit">Mbps</span>
+                            <span class="metric-label">带宽</span>
+                        </div>
                         <div class="metric-card score" id="metric-score">
                             <span class="metric-value" id="current-score">--</span>
                             <span class="metric-label">评分</span>
@@ -205,6 +210,7 @@
                 document.getElementById('current-delay').textContent = metrics.delay ? metrics.delay.toFixed(0) : '--';
                 document.getElementById('current-loss').textContent = metrics.packet_loss !== undefined ? metrics.packet_loss.toFixed(1) : '--';
                 document.getElementById('current-jitter').textContent = metrics.jitter !== undefined ? metrics.jitter.toFixed(1) : '--';
+                document.getElementById('current-bandwidth').textContent = metrics.bandwidth !== undefined && metrics.bandwidth !== null ? metrics.bandwidth.toFixed(1) : '--';
                 document.getElementById('current-score').textContent = metrics.score !== undefined ? metrics.score.toFixed(0) : '--';
                 
                 // Update status
