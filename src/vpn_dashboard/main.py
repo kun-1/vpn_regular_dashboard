@@ -980,6 +980,37 @@ async def get_history():
     return list(switcher.latency_history)
 
 
+@app.get("/api/test-bandwidth")
+async def test_bandwidth():
+    """Manually trigger bandwidth test for current node"""
+    current_node = switcher.get_current_node()
+    if not current_node:
+        return {"success": False, "error": "No current node"}
+    
+    if current_node not in switcher.node_metrics:
+        return {"success": False, "error": "Current node not evaluated yet"}
+    
+    # Run bandwidth test in background
+    loop = asyncio.get_event_loop()
+    bandwidth = await loop.run_in_executor(None, NetworkTester.test_bandwidth)
+    
+    if bandwidth:
+        # Update the metrics
+        metrics = switcher.node_metrics[current_node]
+        metrics.bandwidth_mbps = bandwidth
+        return {
+            "success": True,
+            "node": current_node,
+            "bandwidth_mbps": bandwidth,
+            "message": f"{bandwidth:.1f} Mbps"
+        }
+    else:
+        return {
+            "success": False,
+            "error": "Bandwidth test failed. Make sure speedtest-cli is installed."
+        }
+
+
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks"""
@@ -1025,6 +1056,27 @@ async def startup_event():
             await asyncio.sleep(30)
     
     asyncio.create_task(ip_refresh_loop())
+    
+    # Start bandwidth test loop (every 2 minutes for current node)
+    async def bandwidth_test_loop():
+        await asyncio.sleep(60)  # Wait 1 min after startup
+        while True:
+            current_node = switcher.get_current_node()
+            if current_node and current_node in switcher.node_metrics:
+                print(f"[Bandwidth] Testing current node: {current_node}")
+                bandwidth = await asyncio.get_event_loop().run_in_executor(
+                    None, NetworkTester.test_bandwidth
+                )
+                if bandwidth:
+                    # Update the metrics
+                    metrics = switcher.node_metrics[current_node]
+                    metrics.bandwidth_mbps = bandwidth
+                    print(f"[Bandwidth] {current_node}: {bandwidth:.1f} Mbps")
+                else:
+                    print(f"[Bandwidth] Test failed or speedtest-cli not available")
+            await asyncio.sleep(120)  # Test every 2 minutes
+    
+    asyncio.create_task(bandwidth_test_loop())
     
     # Smart trigger: immediate re-eval on bad conditions
     async def smart_trigger_loop():
