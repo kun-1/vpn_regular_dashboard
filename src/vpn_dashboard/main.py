@@ -474,7 +474,7 @@ class VPNSwitcher:
         self.current_ip_info: Optional[IPInfo] = None
         self.auto_switch_enabled: bool = True
         self.last_switch_time: float = 0
-        self.switch_cooldown: int = 30
+        self.switch_cooldown: int = 20  # 20s for web browsing/video streaming
         self._evaluating: bool = False
         self._switch_verifying: bool = False
         self.proxy_port: str = "7890"
@@ -900,7 +900,7 @@ async def startup_event():
     await switcher.evaluate_all_nodes()
     print(f"[Startup] Initial evaluation complete: {len(switcher.node_metrics)} nodes")
     
-    # Start auto-switching loop
+    # Start auto-switching loop (5s for web/video)
     async def auto_switch_loop():
         await asyncio.sleep(5)
         while True:
@@ -909,18 +909,18 @@ async def startup_event():
                 print(f"[AutoSwitch] Reason: {reason}")
                 success, message = switcher.switch_to_node(best_node)
                 print(f"[AutoSwitch] Result: {message}")
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
     
     asyncio.create_task(auto_switch_loop())
     
-    # Start periodic re-evaluation
+    # Start periodic re-evaluation (45s for web/video)
     async def reevaluate_loop():
-        await asyncio.sleep(60)
+        await asyncio.sleep(45)
         while True:
             print("[Re-eval] Starting periodic node re-evaluation...")
             await switcher.evaluate_all_nodes()
             print(f"[Re-eval] Completed. Evaluated {len(switcher.node_metrics)} nodes")
-            await asyncio.sleep(60)
+            await asyncio.sleep(45)
     
     asyncio.create_task(reevaluate_loop())
     
@@ -935,6 +935,52 @@ async def startup_event():
             await asyncio.sleep(30)
     
     asyncio.create_task(ip_refresh_loop())
+    
+    # Smart trigger: immediate re-eval on bad conditions
+    async def smart_trigger_loop():
+        await asyncio.sleep(10)
+        while True:
+            current_node = switcher.get_current_node()
+            if current_node and current_node in switcher.node_metrics:
+                metrics = switcher.node_metrics[current_node]
+                
+                # Trigger 1: High latency (>500ms)
+                if metrics.delay_ms > 500:
+                    print(f"[SmartTrigger] High latency detected: {metrics.delay_ms:.0f}ms, triggering re-eval")
+                    await switcher.evaluate_all_nodes()
+                    # Check if should switch after re-eval
+                    should_switch, best_node, reason = switcher.should_switch()
+                    if should_switch:
+                        print(f"[SmartTrigger] Auto-switching to better node: {best_node}")
+                        switcher.switch_to_node(best_node)
+                    await asyncio.sleep(10)  # Cooldown after trigger
+                    continue
+                
+                # Trigger 2: High packet loss (>10%)
+                if metrics.packet_loss > 10:
+                    print(f"[SmartTrigger] High packet loss detected: {metrics.packet_loss:.1f}%, triggering re-eval")
+                    await switcher.evaluate_all_nodes()
+                    should_switch, best_node, reason = switcher.should_switch()
+                    if should_switch:
+                        print(f"[SmartTrigger] Auto-switching to better node: {best_node}")
+                        switcher.switch_to_node(best_node)
+                    await asyncio.sleep(10)
+                    continue
+                
+                # Trigger 3: Node dead (delay >= 9999)
+                if not metrics.alive:
+                    print(f"[SmartTrigger] Current node dead, triggering immediate switch")
+                    # Find best alive node immediately
+                    alive_nodes = [(n, m) for n, m in switcher.node_metrics.items() if m.alive]
+                    if alive_nodes:
+                        best = max(alive_nodes, key=lambda x: x[1].overall_score)
+                        switcher.switch_to_node(best[0])
+                    await asyncio.sleep(10)
+                    continue
+            
+            await asyncio.sleep(3)  # Check every 3s for smart triggers
+    
+    asyncio.create_task(smart_trigger_loop())
 
 
 def main():
