@@ -126,19 +126,46 @@ class NetworkTester:
     
     @staticmethod
     def test_bandwidth() -> Optional[float]:
-        """Test bandwidth using speedtest-cli if available"""
-        try:
-            result = subprocess.run(
-                ["speedtest-cli", "--simple", "--timeout", "10"],
-                capture_output=True, text=True, timeout=30
-            )
-            if result.returncode == 0:
-                for line in result.stdout.split('\n'):
-                    if 'Download:' in line:
-                        speed_str = line.split(':')[1].strip().split()[0]
-                        return float(speed_str)
-        except:
-            pass
+        """Test bandwidth using fast download test (3-5 seconds)"""
+        import time
+        
+        # Test URLs - fast, reliable CDN files
+        test_urls = [
+            "http://speedtest.tele2.net/10MB.zip",  # 10MB file
+            "http://speedtest.tele2.net/5MB.zip",   # 5MB file fallback
+        ]
+        
+        proxy_url = f"http://127.0.0.1:{MihomoAPI.PROXY_PORT}"
+        proxies = {"http": proxy_url, "https": proxy_url}
+        
+        for url in test_urls:
+            try:
+                start_time = time.time()
+                # Download for max 5 seconds
+                resp = requests.get(
+                    url, 
+                    proxies=proxies, 
+                    timeout=6,
+                    stream=True
+                )
+                
+                downloaded = 0
+                for chunk in resp.iter_content(chunk_size=8192):
+                    downloaded += len(chunk)
+                    elapsed = time.time() - start_time
+                    if elapsed > 5:  # Stop after 5 seconds
+                        break
+                
+                elapsed = time.time() - start_time
+                if elapsed > 0 and downloaded > 100000:  # At least 100KB
+                    # Calculate Mbps
+                    mbps = (downloaded * 8) / (elapsed * 1000000)
+                    return round(mbps, 1)
+                    
+            except Exception as e:
+                print(f"[Bandwidth] Test failed for {url}: {e}")
+                continue
+        
         return None
     
     @staticmethod
@@ -1057,9 +1084,9 @@ async def startup_event():
     
     asyncio.create_task(ip_refresh_loop())
     
-    # Start bandwidth test loop (every 2 minutes for current node)
+    # Start bandwidth test loop (every 30 seconds for current node)
     async def bandwidth_test_loop():
-        await asyncio.sleep(60)  # Wait 1 min after startup
+        await asyncio.sleep(30)  # Wait 30s after startup
         while True:
             current_node = switcher.get_current_node()
             if current_node and current_node in switcher.node_metrics:
@@ -1073,8 +1100,8 @@ async def startup_event():
                     metrics.bandwidth_mbps = bandwidth
                     print(f"[Bandwidth] {current_node}: {bandwidth:.1f} Mbps")
                 else:
-                    print(f"[Bandwidth] Test failed or speedtest-cli not available")
-            await asyncio.sleep(120)  # Test every 2 minutes
+                    print(f"[Bandwidth] Test failed")
+            await asyncio.sleep(30)  # Test every 30 seconds
     
     asyncio.create_task(bandwidth_test_loop())
     
