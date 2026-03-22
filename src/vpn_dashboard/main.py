@@ -345,16 +345,53 @@ class MihomoAPI:
             return None
     
     @classmethod
-    def get_proxy_group(cls, group_name: str = "🚀 节点选择") -> dict:
-        """Get proxy group details"""
+    def get_proxy_group(cls, group_name: Optional[str] = None) -> dict:
+        """Get proxy group details. Auto-detect if group_name not provided."""
         try:
             from urllib.parse import quote
+            
+            # Auto-detect selector group if not specified
+            if group_name is None:
+                group_name = cls._find_best_selector()
+                if not group_name:
+                    print("[MihomoAPI] No selector group found")
+                    return {}
+                print(f"[MihomoAPI] Using selector: {group_name}")
+            
             resp = cls._request("GET", f"/proxies/{quote(group_name, safe='')}", timeout=5)
             if resp and resp.status_code == 200:
                 return resp.json()
+            elif resp and resp.status_code == 404:
+                # Try to find a valid selector
+                print(f"[MihomoAPI] Group '{group_name}' not found, trying auto-detect")
+                group_name = cls._find_best_selector()
+                if group_name:
+                    resp = cls._request("GET", f"/proxies/{quote(group_name, safe='')}", timeout=5)
+                    if resp and resp.status_code == 200:
+                        return resp.json()
         except Exception as e:
             print(f"[MihomoAPI] get_proxy_group failed: {e}")
         return {}
+    
+    @classmethod
+    def _find_best_selector(cls) -> Optional[str]:
+        """Find the best selector group to use"""
+        try:
+            proxies = cls.get_all_proxies()
+            selectors = [(name, info) for name, info in proxies.items() 
+                        if info.get('type') == 'Selector']
+            
+            if not selectors:
+                return None
+            
+            # Prefer selectors with more nodes
+            selectors.sort(key=lambda x: len(x[1].get('all', [])), reverse=True)
+            
+            # Return the one with most nodes
+            return selectors[0][0]
+        except Exception as e:
+            print(f"[MihomoAPI] _find_best_selector failed: {e}")
+            return None
     
     @classmethod
     def get_all_proxies(cls) -> dict:
@@ -434,7 +471,7 @@ class VPNSwitcher:
     """Main VPN switching logic with IP verification"""
     
     def __init__(self):
-        self.proxy_group = "🚀 节点选择"
+        self.proxy_group: Optional[str] = None  # Will be auto-detected
         self.node_metrics: dict[str, NodeMetrics] = {}
         self.latency_history: deque = deque(maxlen=100)
         self.current_node: str = ""
@@ -448,12 +485,21 @@ class VPNSwitcher:
         self.node_ip_cache: dict[str, IPInfo] = {}  # Cache node IPs
         
     async def initialize(self):
-        """Initialize proxy port"""
+        """Initialize proxy port and detect selector group"""
         self.proxy_port = MihomoAPI.get_proxy_port()
         print(f"[Init] Proxy port: {self.proxy_port}")
+        
+        # Auto-detect selector group
+        self.proxy_group = MihomoAPI._find_best_selector()
+        if self.proxy_group:
+            print(f"[Init] Detected selector group: {self.proxy_group}")
+        else:
+            print("[Init] Warning: No selector group found!")
     
     def get_current_node(self) -> str:
         """Get currently selected node"""
+        if not self.proxy_group:
+            self.proxy_group = MihomoAPI._find_best_selector()
         group = MihomoAPI.get_proxy_group(self.proxy_group)
         return group.get("now", "")
     
