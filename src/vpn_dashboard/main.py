@@ -610,6 +610,16 @@ class VPNSwitcher:
         # Update current IP
         self.current_ip_info = self.get_current_ip()
         
+        # Add initial history point for chart
+        if self.current_node and self.current_node in self.node_metrics:
+            current_metrics = self.node_metrics[self.current_node]
+            self.latency_history.append({
+                "time": time.time(),
+                "delay": current_metrics.delay_ms,
+                "node": self.current_node,
+                "ip": self.current_ip_info.ip if self.current_ip_info else ""
+            })
+        
         self._evaluating = False
     
     def should_switch(self) -> tuple[bool, str, str]:
@@ -825,8 +835,10 @@ async def startup_event():
     """Start background tasks"""
     await switcher.initialize()
     
-    # Start node evaluation
-    asyncio.create_task(switcher.evaluate_all_nodes())
+    # Initial evaluation - wait for completion before starting server
+    print("[Startup] Starting initial node evaluation...")
+    await switcher.evaluate_all_nodes()
+    print(f"[Startup] Initial evaluation complete: {len(switcher.node_metrics)} nodes")
     
     # Start auto-switching loop
     async def auto_switch_loop():
