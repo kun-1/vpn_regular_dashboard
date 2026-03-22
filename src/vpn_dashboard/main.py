@@ -618,7 +618,19 @@ class VPNSwitcher:
         self.current_node = self.get_current_node()
         
         group = MihomoAPI.get_proxy_group(self.proxy_group)
-        nodes = [n for n in group.get("all", []) if n not in ["REJECT", "DIRECT"]]
+        all_proxies = MihomoAPI.get_all_proxies()
+        
+        # Filter: exclude REJECT, DIRECT, and nested groups
+        nodes = []
+        for n in group.get("all", []):
+            if n in ["REJECT", "DIRECT"]:
+                continue
+            # Skip nested groups by name patterns
+            skip_patterns = ['自动最优', '自动选择', '故障转移', '负载均衡', '狗狗加速']
+            if any(p in n for p in skip_patterns):
+                print(f"[Eval] Skipping nested group: {n}")
+                continue
+            nodes.append(n)
         
         # Evaluate in parallel with semaphore
         semaphore = asyncio.Semaphore(3)  # Reduced from 5 to be gentler
