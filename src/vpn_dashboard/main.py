@@ -641,7 +641,10 @@ class VPNSwitcher:
             if n in ["REJECT", "DIRECT"]:
                 continue
             # Skip nested groups by name patterns
-            skip_patterns = ['自动最优', '自动选择', '故障转移', '负载均衡', '狗狗加速']
+            skip_patterns = [
+                '自动最优', '自动选择', '故障转移', '负载均衡', 
+                '狗狗加速', '官网:', '网址:', '🌏自动'
+            ]
             if any(p in n for p in skip_patterns):
                 print(f"[Eval] Skipping nested group: {n}")
                 continue
