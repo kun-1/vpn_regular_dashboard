@@ -925,6 +925,10 @@ async def current():
 @app.get("/api/nodes")
 async def nodes():
     """Return all nodes as JSON"""
+    # Check if evaluation is in progress
+    if switcher._evaluating and not switcher.node_metrics:
+        return {"status": "evaluating", "nodes": [], "message": "Initial evaluation in progress..."}
+    
     current = switcher.get_current_node()
     nodes_data = list(switcher.node_metrics.values())
     
@@ -951,7 +955,7 @@ async def nodes():
             } if node.ip_info else None
         })
     
-    return result
+    return {"status": "ready", "nodes": result, "count": len(result)}
 
 
 @app.post("/api/switch/{node_name}")

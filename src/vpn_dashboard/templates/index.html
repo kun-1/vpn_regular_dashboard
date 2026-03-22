@@ -244,21 +244,25 @@
         async function fetchNodes() {
             try {
                 const response = await fetch('/api/nodes');
-                const nodes = await response.json();
+                const data = await response.json();
                 
                 const tbody = document.getElementById('nodes-tbody');
                 
-                if (nodes.length === 0) {
+                // Handle evaluating status
+                if (data.status === "evaluating" || !data.nodes || data.nodes.length === 0) {
                     tbody.innerHTML = `
                         <tr class="loading-row">
                             <td colspan="8">
                                 <div class="loading-spinner"></div>
-                                <span>正在评估所有节点...</span>
+                                <span>${data.message || '正在评估所有节点...'}</span>
                             </td>
                         </tr>
                     `;
+                    document.getElementById('eval-status').textContent = '评估中...';
                     return;
                 }
+                
+                const nodes = data.nodes;
                 
                 tbody.innerHTML = nodes.map(node => {
                     const isCurrent = node.is_current;
@@ -286,7 +290,7 @@
                 }).join('');
                 
                 // Update evaluation status
-                document.getElementById('eval-status').textContent = `${nodes.length} 个节点已评估`;
+                document.getElementById('eval-status').textContent = `${data.count || nodes.length} 个节点已评估`;
                 document.getElementById('eval-status').classList.add('ready');
                 
             } catch (e) {
