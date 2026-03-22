@@ -347,20 +347,47 @@ class MihomoAPI:
         """Find the best selector group to use"""
         try:
             proxies = cls.get_all_proxies()
-            selectors = [(name, info) for name, info in proxies.items() 
-                        if info.get('type') == 'Selector']
             
-            if not selectors:
+            # Get all selectable groups (Selector, URLTest, Fallback)
+            selectable_types = ['Selector', 'URLTest', 'Fallback']
+            groups = [(name, info) for name, info in proxies.items() 
+                     if info.get('type') in selectable_types]
+            
+            if not groups:
                 return None
             
-            # Prefer selectors with more nodes
-            selectors.sort(key=lambda x: len(x[1].get('all', [])), reverse=True)
+            # Priority 1: URLTest type (auto latency test)
+            urltest_groups = [(n, i) for n, i in groups if i.get('type') == 'URLTest']
+            if urltest_groups:
+                urltest_groups.sort(key=lambda x: len(x[1].get('all', [])), reverse=True)
+                print(f"[MihomoAPI] Selected URLTest group: {urltest_groups[0][0]}")
+                return urltest_groups[0][0]
             
-            # Return the one with most nodes
-            return selectors[0][0]
+            # Priority 2: Regular Selector with most nodes
+            selector_groups = [(n, i) for n, i in groups if i.get('type') == 'Selector']
+            if selector_groups:
+                selector_groups.sort(key=lambda x: len(x[1].get('all', [])), reverse=True)
+                for name, info in selector_groups:
+                    node_count = len(info.get('all', []))
+                    if node_count >= 10:
+                        print(f"[MihomoAPI] Selected Selector group: {name} ({node_count} nodes)")
+                        return name
+            
+            # Priority 3: Fallback groups
+            fallback_groups = [(n, i) for n, i in groups if i.get('type') == 'Fallback']
+            if fallback_groups:
+                fallback_groups.sort(key=lambda x: len(x[1].get('all', [])), reverse=True)
+                print(f"[MihomoAPI] Selected Fallback group: {fallback_groups[0][0]}")
+                return fallback_groups[0][0]
+            
+            # Fallback: any group
+            if groups:
+                print(f"[MihomoAPI] Selected fallback group: {groups[0][0]}")
+                return groups[0][0]
+                
         except Exception as e:
             print(f"[MihomoAPI] _find_best_selector failed: {e}")
-            return None
+        return None
     
     @classmethod
     def get_all_proxies(cls) -> dict:
