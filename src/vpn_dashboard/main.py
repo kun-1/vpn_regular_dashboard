@@ -113,43 +113,12 @@ class IPDetector:
         return None
     
     @classmethod
-    def test_node_ip(cls, node_name: str, base_url: str = "http://127.0.0.1:9090") -> Optional[IPInfo]:
-        """Test IP for a specific node by temporarily switching to it"""
-        try:
-            # Get current node to restore later
-            current_resp = requests.get(f"{base_url}/proxies/🚀%20节点选择", timeout=5)
-            current_node = current_resp.json().get("now", "") if current_resp.status_code == 200 else ""
-            
-            # Switch to target node
-            switch_resp = requests.put(
-                f"{base_url}/proxies/🚀%20节点选择",
-                json={"name": node_name},
-                timeout=5
-            )
-            
-            if switch_resp.status_code != 204:
-                return None
-            
-            # Wait for connection to establish
-            time.sleep(2)
-            
-            # Get IP through the proxy
-            proxy_url = f"http://127.0.0.1:7890"  # Default Mihomo mixed port
-            ip_info = cls.get_current_ip(proxy_url)
-            
-            # Restore original node
-            if current_node:
-                requests.put(
-                    f"{base_url}/proxies/🚀%20节点选择",
-                    json={"name": current_node},
-                    timeout=5
-                )
-            
-            return ip_info
-            
-        except Exception as e:
-            print(f"[IPDetector] Test node {node_name} failed: {e}")
-            return None
+    def test_node_ip(cls, node_name: str, proxy_port: str = "7890") -> Optional[IPInfo]:
+        """Test IP for current active connection - NOT by switching"""
+        # This method is now a simple wrapper to get current IP
+        # We don't switch nodes here because it's too slow and blocking
+        proxy_url = f"http://127.0.0.1:{proxy_port}"
+        return cls.get_current_ip(proxy_url)
 
 
 class NetworkTester:
@@ -508,7 +477,7 @@ class VPNSwitcher:
         proxy_url = f"http://127.0.0.1:{self.proxy_port}"
         return IPDetector.get_current_ip(proxy_url)
     
-    def evaluate_node(self, node_name: str, test_ip: bool = False) -> NodeMetrics:
+    def evaluate_node(self, node_name: str) -> NodeMetrics:
         """Evaluate a single node comprehensively"""
         # Test delay via API
         delay = MihomoAPI.test_node_delay(node_name)
@@ -520,14 +489,8 @@ class VPNSwitcher:
         final_delay = max(delay, ping_delay)
         alive = final_delay < 9999
         
-        # Get cached IP info or test new
+        # Get cached IP info (we don't test each node's IP during evaluation - too slow)
         ip_info = self.node_ip_cache.get(node_name)
-        if test_ip and alive:
-            # Only test IP for current node or on demand
-            new_ip = IPDetector.test_node_ip(node_name)
-            if new_ip:
-                ip_info = new_ip
-                self.node_ip_cache[node_name] = new_ip
         
         # Calculate scores - IMPROVED ALGORITHM
         # Higher weight on delay (user experience)
@@ -636,11 +599,10 @@ class VPNSwitcher:
         async def evaluate_with_limit(node_name: str):
             async with semaphore:
                 loop = asyncio.get_event_loop()
-                # Only test IP for a few nodes to save time
-                test_ip = node_name == self.current_node or len(self.node_ip_cache) < 5
-                metrics = await loop.run_in_executor(None, self.evaluate_node, node_name, test_ip)
+                metrics = await loop.run_in_executor(None, self.evaluate_node, node_name)
                 self._update_history(node_name, metrics)
                 self.node_metrics[node_name] = metrics
+                print(f"[Eval] {node_name}: delay={metrics.delay_ms:.0f}ms, score={metrics.overall_score:.1f}")
                 return node_name
         
         await asyncio.gather(*[evaluate_with_limit(n) for n in nodes])
