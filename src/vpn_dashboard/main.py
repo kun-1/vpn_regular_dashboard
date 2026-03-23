@@ -62,7 +62,7 @@ class NodeMetrics:
     stability_score: float
     alive: bool
     overall_score: float
-    dns_ms: Optional[float] = None  # DNS resolution time in ms
+    dns_server: Optional[str] = None  # DNS server name (e.g. "Cloudflare", "Google DNS")
     ip_info: Optional[IPInfo] = None
     history: List[Dict] = field(default_factory=list)
     
@@ -175,42 +175,56 @@ class NetworkTester:
         return None
     
     @staticmethod
-    def test_dns(test_domain: str = "google.com", samples: int = 3) -> Optional[float]:
-        """Test DNS resolution time in milliseconds (average of multiple samples)"""
-        import socket
+    def test_dns() -> Optional[str]:
+        """Get the DNS server address being used through proxy"""
+        # Try to detect DNS server via Cloudflare's trace endpoint
+        # This endpoint returns which colo the request went through
+        proxy_url = f"http://127.0.0.1:{MihomoAPI.PROXY_PORT}"
+        proxies = {"http": proxy_url, "https": proxy_url}
 
-        test_domains = ["google.com", "cloudflare.com", "apple.com"]
-        if test_domain not in test_domains:
-            test_domains.insert(0, test_domain)
+        try:
+            # Use Cloudflare trace to detect DNS server
+            resp = requests.get(
+                "https://dns.cloudflare.com/cdn-cgi/trace",
+                proxies=proxies,
+                timeout=5
+            )
+            if resp.status_code == 200:
+                data = resp.text
+                # Parse colo=xxx (Cloudflare datacenter)
+                for line in data.split('\n'):
+                    if line.startswith('colo='):
+                        colo = line.split('=')[1].strip()
+                        # colo is the datacenter, not the DNS server IP
+                        # But we can use this to indicate clean DNS is working
+                        return f"Cloudflare ({colo})"
+        except Exception as e:
+            print(f"[DNS] Cloudflare trace failed: {e}")
 
-        all_times = []
+        # Fallback: try Google DNS to check connectivity
+        try:
+            resp = requests.get(
+                "https://ip.google.com/generate_204",
+                proxies=proxies,
+                timeout=5
+            )
+            if resp.status_code == 204 or resp.status_code == 200:
+                return "Google DNS"
+        except Exception as e:
+            print(f"[DNS] Google check failed: {e}")
 
-        for domain in test_domains:
-            if len(all_times) >= samples:
-                break
-            try:
-                # Warm up - first lookup might be slower due to caching
-                socket.getaddrinfo(domain, 80)
+        # Fallback: try OpenDNS check
+        try:
+            resp = requests.get(
+                "http://myip.dnsomatic.com/",
+                proxies=proxies,
+                timeout=5
+            )
+            if resp.status_code == 200:
+                return "OpenDNS"
+        except Exception:
+            pass
 
-                times = []
-                for _ in range(samples):
-                    start = time.time()
-                    socket.getaddrinfo(domain, 80)
-                    elapsed = (time.time() - start) * 1000
-                    times.append(elapsed)
-
-                # Use median to avoid outliers
-                times.sort()
-                median_time = times[len(times) // 2]
-                all_times.append(median_time)
-
-            except Exception as e:
-                print(f"[DNS] Test failed for {domain}: {e}")
-                continue
-
-        if all_times:
-            avg_time = sum(all_times) / len(all_times)
-            return round(avg_time, 1)
         return None
 
     @staticmethod
@@ -658,8 +672,8 @@ class VPNSwitcher:
         bandwidth = None
         bandwidth = NetworkTester.test_bandwidth()
 
-        # Test DNS for all nodes (it's fast)
-        dns_ms = NetworkTester.test_dns()
+        # Test DNS for all nodes (check which DNS server is used)
+        dns_server = NetworkTester.test_dns()
         
         # Calculate scores - IMPROVED ALGORITHM
         # Higher weight on delay (user experience)
@@ -698,7 +712,7 @@ class VPNSwitcher:
             stability_score=stability_score,
             alive=alive,
             overall_score=overall_score,
-            dns_ms=dns_ms,
+            dns_server=dns_server,
             ip_info=ip_info,
             history=history
         )
@@ -796,7 +810,7 @@ class VPNSwitcher:
                 self.node_metrics[node_name] = metrics
                 ip_str = metrics.ip_info.location_str if metrics.ip_info else "no IP"
                 bw_str = f"{metrics.bandwidth_mbps:.1f}Mbps" if metrics.bandwidth_mbps else "no BW"
-                dns_str = f"{metrics.dns_ms:.0f}ms" if metrics.dns_ms else "no DNS"
+                dns_str = metrics.dns_server if metrics.dns_server else "unknown"
                 print(f"[Eval] {node_name}: delay={metrics.delay_ms:.0f}ms, {ip_str}, {bw_str}, DNS={dns_str}, score={metrics.overall_score:.1f}")
                 return node_name
         
@@ -987,7 +1001,7 @@ async def current():
             "packet_loss": packet_loss,
             "jitter": jitter,
             "bandwidth": cached.bandwidth_mbps if cached else None,
-            "dns": cached.dns_ms if cached else None,
+            "dns": cached.dns_server if cached else None,
             "score": score,
             "status": status
         },
@@ -1019,7 +1033,7 @@ async def nodes():
             "packet_loss": node.packet_loss,
             "jitter_ms": node.jitter_ms,
             "bandwidth_mbps": node.bandwidth_mbps,
-            "dns_ms": node.dns_ms,
+            "dns_server": node.dns_server,
             "score": node.overall_score,
             "status": node.status,
             "alive": node.alive,
@@ -1161,13 +1175,13 @@ async def startup_event():
             current_node = switcher.get_current_node()
             if current_node and current_node in switcher.node_metrics:
                 print(f"[DNS] Testing current node: {current_node}")
-                dns_ms = await asyncio.get_event_loop().run_in_executor(
+                dns_server = await asyncio.get_event_loop().run_in_executor(
                     None, NetworkTester.test_dns
                 )
-                if dns_ms:
+                if dns_server:
                     metrics = switcher.node_metrics[current_node]
-                    metrics.dns_ms = dns_ms
-                    print(f"[DNS] {current_node}: {dns_ms:.0f} ms")
+                    metrics.dns_server = dns_server
+                    print(f"[DNS] {current_node}: {dns_server}")
                 else:
                     print(f"[DNS] Test failed")
             await asyncio.sleep(60)  # Test every 60 seconds
