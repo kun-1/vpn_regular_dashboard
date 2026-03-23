@@ -136,15 +136,16 @@ class NetworkTester:
             "http://speedtest.tele2.net/5MB.zip",
             "http://proof.ovh.net/files/10Mb.dat",
             "http://ipv4.download.thinkbroadband.com/10MB.zip",
+            "http://cachefly.cachefly.net/10mb.test",
         ]
 
         proxy_url = f"http://127.0.0.1:{MihomoAPI.PROXY_PORT}"
         proxies = {"http": proxy_url, "https": proxy_url}
 
+        # Try with proxy first
         for url in test_urls:
             try:
                 start_time = time.time()
-                # Download for max 5 seconds
                 resp = requests.get(
                     url,
                     proxies=proxies,
@@ -161,49 +162,85 @@ class NetworkTester:
 
                 elapsed = time.time() - start_time
                 if elapsed > 0 and downloaded > 100000:  # At least 100KB
-                    # Calculate Mbps
                     mbps = (downloaded * 8) / (elapsed * 1000000)
                     return round(mbps, 1)
 
             except Exception as e:
-                print(f"[Bandwidth] Test failed for {url}: {e}")
+                print(f"[Bandwidth] Proxy test failed for {url}: {e}")
+                continue
+
+        # Fallback: try without proxy (direct connection)
+        print("[Bandwidth] Proxy failed, trying direct connection...")
+        for url in test_urls[:3]:  # Try first 3 URLs
+            try:
+                start_time = time.time()
+                resp = requests.get(url, timeout=6, stream=True)
+
+                downloaded = 0
+                for chunk in resp.iter_content(chunk_size=8192):
+                    downloaded += len(chunk)
+                    elapsed = time.time() - start_time
+                    if elapsed > 5:
+                        break
+
+                elapsed = time.time() - start_time
+                if elapsed > 0 and downloaded > 100000:
+                    mbps = (downloaded * 8) / (elapsed * 1000000)
+                    print(f"[Bandwidth] Direct test succeeded: {mbps:.1f} Mbps")
+                    return round(mbps, 1)
+            except Exception as e:
+                print(f"[Bandwidth] Direct test failed for {url}: {e}")
                 continue
 
         return None
     
     @staticmethod
-    def test_dns(domain: str = "google.com", timeout: int = 5) -> Optional[float]:
-        """Test DNS resolution time through proxy in milliseconds"""
-        import socket
-        proxy_url = f"http://127.0.0.1:{MihomoAPI.PROXY_PORT}"
-        proxies = {"http": proxy_url, "https": proxy_url}
+    def test_dns(resolver: str = "8.8.8.8", test_domain: str = "google.com", timeout: int = 5) -> Optional[float]:
+        """Test DNS resolution time using dig command (milliseconds)"""
+        try:
+            # Use dig command to measure DNS query time to specific resolver
+            result = subprocess.run(
+                ["dig", @"@{}".format(resolver), test_domain, "+short", "+time={}".format(timeout), "+tries=1"],
+                capture_output=True, text=True, timeout=timeout + 2
+            )
 
-        test_domains = [
-            "google.com",
-            "cloudflare.com",
-            "amazon.com",
-        ]
-
-        if domain not in test_domains:
-            test_domains.insert(0, domain)
-
-        for test_domain in test_domains:
-            try:
-                start_time = time.time()
-                # Use requests to resolve DNS through proxy
-                # We use a HEAD request which is lightweight
-                resp = requests.head(
-                    f"http://{test_domain}",
-                    proxies=proxies,
-                    timeout=timeout,
-                    allow_redirects=True
+            if result.returncode == 0 and result.stdout.strip():
+                # dig returns the IP on success, query time is in the stats
+                # Run again with +stats to get query time
+                result2 = subprocess.run(
+                    ["dig", "@{}".format(resolver), test_domain, "+stats", "+noedns", "+time={}".format(timeout), "+tries=1"],
+                    capture_output=True, text=True, timeout=timeout + 2
                 )
-                elapsed = (time.time() - start_time) * 1000  # Convert to ms
-                if elapsed < timeout * 1000:
-                    return round(elapsed, 1)
-            except Exception as e:
-                print(f"[DNS] Test failed for {test_domain}: {e}")
-                continue
+
+                # Parse query time from dig stats
+                for line in result2.stderr.split('\n'):
+                    if 'Query time:' in line:
+                        try:
+                            # Format: "Query time: 15 msec"
+                            time_ms = int(line.split('Query time:')[1].split('msec')[0].strip())
+                            return float(time_ms)
+                        except:
+                            pass
+
+                # Fallback: try using socket-based DNS lookup timing
+                import socket
+                start = time.time()
+                socket.getaddrinfo(test_domain, 80)
+                elapsed = (time.time() - start) * 1000
+                return round(elapsed, 1)
+
+        except FileNotFoundError:
+            # dig not available, use socket fallback
+            try:
+                import socket
+                start = time.time()
+                socket.getaddrinfo(test_domain, 80)
+                elapsed = (time.time() - start) * 1000
+                return round(elapsed, 1)
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"[DNS] dig test failed: {e}")
 
         return None
 

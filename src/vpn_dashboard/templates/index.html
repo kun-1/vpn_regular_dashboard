@@ -15,11 +15,11 @@
                 <span class="status-dot"></span>
                 <h1>VPN Dashboard</h1>
             </div>
-            <span class="auto-badge" id="auto-status">自动切换: 开启</span>
+            <span class="auto-badge" id="auto-status">自动切换</span>
         </div>
         <nav class="header-right">
             <button class="btn-primary" id="toggle-auto-btn" onclick="toggleAuto()">
-                切换自动模式
+                切换模式
             </button>
         </nav>
     </header>
@@ -34,7 +34,7 @@
                     <span class="last-switch" id="last-switch">--</span>
                 </div>
                 <div class="panel-body">
-                    <div class="current-connection">
+                    <div class="hero-connection">
                         <div class="location-display">
                             <span class="location-flag" id="current-flag">🌐</span>
                             <div class="location-info">
@@ -47,7 +47,7 @@
                             <span class="node-value" id="current-node-name">--</span>
                         </div>
                     </div>
-                    
+
                     <div class="metrics-grid">
                         <div class="metric-card" id="metric-delay">
                             <span class="metric-value" id="current-delay">--</span>
@@ -79,7 +79,7 @@
                             <span class="metric-label">评分</span>
                         </div>
                     </div>
-                    
+
                     <div class="status-bar" id="current-status-bar">
                         <span class="status-indicator" id="current-status">评估中...</span>
                     </div>
@@ -119,7 +119,6 @@
                         <thead>
                             <tr>
                                 <th>节点</th>
-                                <th>位置</th>
                                 <th>延迟</th>
                                 <th>丢包</th>
                                 <th>抖动</th>
@@ -131,7 +130,7 @@
                         </thead>
                         <tbody id="nodes-tbody">
                             <tr class="loading-row">
-                                <td colspan="8">
+                                <td colspan="9">
                                     <div class="loading-spinner"></div>
                                     <span>正在评估所有节点...</span>
                                 </td>
@@ -147,9 +146,15 @@
         // Chart instance
         let latencyChart = null;
 
-        // Initialize chart
+        // Initialize chart with new styling
         function initChart() {
             const ctx = document.getElementById('latencyChart').getContext('2d');
+
+            // Create gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, 'rgba(0, 240, 255, 0.3)');
+            gradient.addColorStop(1, 'rgba(0, 240, 255, 0)');
+
             latencyChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -157,13 +162,16 @@
                     datasets: [{
                         label: '延迟 (ms)',
                         data: [],
-                        borderColor: '#5794f2',
-                        backgroundColor: 'rgba(87, 148, 242, 0.1)',
+                        borderColor: '#00f0ff',
+                        backgroundColor: gradient,
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4,
                         pointRadius: 0,
-                        pointHoverRadius: 4
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#00f0ff',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2
                     }]
                 },
                 options: {
@@ -179,17 +187,23 @@
                         y: {
                             beginAtZero: true,
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.05)'
+                                color: 'rgba(30, 45, 77, 0.5)',
+                                drawBorder: false
                             },
                             ticks: {
-                                color: '#6e7985',
-                                font: { size: 10 }
+                                color: '#4a5a7a',
+                                font: { family: 'JetBrains Mono', size: 10 },
+                                padding: 8
                             }
                         }
                     },
                     interaction: {
                         intersect: false,
                         mode: 'index'
+                    },
+                    animation: {
+                        duration: 750,
+                        easing: 'easeOutQuart'
                     }
                 }
             });
@@ -200,17 +214,17 @@
             try {
                 const response = await fetch('/api/current');
                 const data = await response.json();
-                
+
                 // Update location display
                 if (data.ip_info) {
                     document.getElementById('current-flag').textContent = data.ip_info.flag;
                     document.getElementById('current-location').textContent = data.ip_info.location;
                     document.getElementById('current-ip').textContent = data.ip_info.ip;
                 }
-                
+
                 // Update node name
                 document.getElementById('current-node-name').textContent = data.node || 'Unknown';
-                
+
                 // Update metrics
                 const metrics = data.metrics;
                 document.getElementById('current-delay').textContent = metrics.delay ? metrics.delay.toFixed(0) : '--';
@@ -219,31 +233,56 @@
                 document.getElementById('current-bandwidth').textContent = metrics.bandwidth !== undefined && metrics.bandwidth !== null ? metrics.bandwidth.toFixed(1) : '--';
                 document.getElementById('current-dns').textContent = metrics.dns !== undefined && metrics.dns !== null ? metrics.dns.toFixed(0) : '--';
                 document.getElementById('current-score').textContent = metrics.score !== undefined ? metrics.score.toFixed(0) : '--';
-                
+
                 // Update status
                 const statusEl = document.getElementById('current-status');
                 const statusBar = document.getElementById('current-status-bar');
                 statusBar.className = 'status-bar ' + metrics.status;
-                
+
                 const statusText = {
                     'good': '● 连接优秀',
-                    'warning': '● 连接一般', 
+                    'warning': '● 连接一般',
                     'bad': '● 连接较差',
                     'evaluating': '● 评估中...'
                 };
                 statusEl.textContent = statusText[metrics.status] || '● 未知';
-                
+
                 // Update metric cards
-                document.getElementById('metric-delay').className = 'metric-card ' + (metrics.delay < 100 ? 'good' : metrics.delay < 300 ? 'warning' : 'bad');
-                document.getElementById('metric-loss').className = 'metric-card ' + (metrics.packet_loss < 1 ? 'good' : metrics.packet_loss < 5 ? 'warning' : 'bad');
-                document.getElementById('metric-jitter').className = 'metric-card ' + (metrics.jitter < 20 ? 'good' : metrics.jitter < 50 ? 'warning' : 'bad');
-                document.getElementById('metric-score').className = 'metric-card score ' + metrics.status;
-                
+                updateMetricCard('metric-delay', metrics.delay, 100, 300);
+                updateMetricCard('metric-loss', metrics.packet_loss, 1, 5);
+                updateMetricCard('metric-jitter', metrics.jitter, 20, 50);
+                document.getElementById('metric-score').className = 'metric-card score ' + (metrics.status || '');
+
+                // Update auto badge
+                const autoBadge = document.getElementById('auto-status');
+                if (data.auto_mode) {
+                    autoBadge.classList.remove('disabled');
+                    autoBadge.textContent = '自动切换';
+                } else {
+                    autoBadge.classList.add('disabled');
+                    autoBadge.textContent = '手动模式';
+                }
+
                 // Update last switch time
-                document.getElementById('last-switch').textContent = '上次切换: ' + data.last_switch;
-                
+                document.getElementById('last-switch').textContent = '切换: ' + data.last_switch;
+
             } catch (e) {
                 console.error('Failed to fetch current:', e);
+            }
+        }
+
+        function updateMetricCard(id, value, goodThreshold, badThreshold) {
+            const card = document.getElementById(id);
+            if (value === undefined || value === null || value === '--') {
+                card.className = 'metric-card';
+                return;
+            }
+            if (value < goodThreshold) {
+                card.className = 'metric-card good';
+            } else if (value < badThreshold) {
+                card.className = 'metric-card warning';
+            } else {
+                card.className = 'metric-card bad';
             }
         }
 
@@ -252,14 +291,14 @@
             try {
                 const response = await fetch('/api/nodes');
                 const data = await response.json();
-                
+
                 const tbody = document.getElementById('nodes-tbody');
-                
+
                 // Handle evaluating status
                 if (data.status === "evaluating" || !data.nodes || data.nodes.length === 0) {
                     tbody.innerHTML = `
                         <tr class="loading-row">
-                            <td colspan="9">
+                            <td colspan="8">
                                 <div class="loading-spinner"></div>
                                 <span>${data.message || '正在评估所有节点...'}</span>
                             </td>
@@ -268,22 +307,20 @@
                     document.getElementById('eval-status').textContent = '评估中...';
                     return;
                 }
-                
+
                 const nodes = data.nodes;
-                
-                tbody.innerHTML = nodes.map(node => {
+
+                tbody.innerHTML = nodes.map((node, index) => {
                     const isCurrent = node.is_current;
                     const statusClass = node.status;
                     const statusText = { good: '优秀', warning: '一般', bad: '较差' }[node.status] || '未知';
-                    const location = node.ip_info ? `${node.ip_info.flag} ${node.ip_info.location}` : '🌐 Unknown';
-                    
+
                     return `
-                        <tr class="${isCurrent ? 'current' : ''} ${statusClass}">
+                        <tr class="${isCurrent ? 'current' : ''} ${statusClass}" style="animation-delay: ${Math.min(index * 20, 300)}ms">
                             <td class="node-name-cell">
                                 ${isCurrent ? '<span class="current-badge">当前</span>' : ''}
                                 <span class="node-name-text">${node.name}</span>
                             </td>
-                            <td class="location-cell">${location}</td>
                             <td class="metric-cell ${node.delay_ms < 100 ? 'good' : node.delay_ms < 300 ? 'warning' : 'bad'}">${node.delay_ms.toFixed(0)} ms</td>
                             <td class="metric-cell ${node.packet_loss < 1 ? 'good' : node.packet_loss < 5 ? 'warning' : 'bad'}">${node.packet_loss.toFixed(1)}%</td>
                             <td class="metric-cell ${node.jitter_ms < 20 ? 'good' : node.jitter_ms < 50 ? 'warning' : 'bad'}">${node.jitter_ms.toFixed(1)} ms</td>
@@ -296,11 +333,11 @@
                         </tr>
                     `;
                 }).join('');
-                
+
                 // Update evaluation status
-                document.getElementById('eval-status').textContent = `${data.count || nodes.length} 个节点已评估`;
+                document.getElementById('eval-status').textContent = `${data.count || nodes.length} 节点`;
                 document.getElementById('eval-status').classList.add('ready');
-                
+
             } catch (e) {
                 console.error('Failed to fetch nodes:', e);
             }
@@ -311,7 +348,7 @@
             try {
                 const response = await fetch('/api/history');
                 const history = await response.json();
-                
+
                 if (latencyChart && history.length > 0) {
                     // Take last 30 points
                     const recent = history.slice(-30);
@@ -329,14 +366,14 @@
             try {
                 const btn = event.target;
                 btn.disabled = true;
-                btn.textContent = '切换中...';
-                
+                btn.textContent = '切换...';
+
                 const response = await fetch(`/api/switch/${encodeURIComponent(nodeName)}`, {
                     method: 'POST'
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success) {
                     btn.textContent = '成功';
                     setTimeout(() => {
@@ -359,16 +396,18 @@
             try {
                 const response = await fetch('/api/toggle-auto');
                 const data = await response.json();
-                
-                const status = document.getElementById('auto-status');
+
+                const autoBadge = document.getElementById('auto-status');
                 const btn = document.getElementById('toggle-auto-btn');
-                
+
                 if (data.enabled) {
-                    status.textContent = '自动切换: 开启';
-                    btn.textContent = '关闭自动模式';
+                    autoBadge.classList.remove('disabled');
+                    autoBadge.textContent = '自动切换';
+                    btn.textContent = '切换模式';
                 } else {
-                    status.textContent = '自动切换: 关闭';
-                    btn.textContent = '开启自动模式';
+                    autoBadge.classList.add('disabled');
+                    autoBadge.textContent = '手动模式';
+                    btn.textContent = '切换模式';
                 }
             } catch (e) {
                 console.error('Toggle auto failed:', e);
@@ -386,7 +425,7 @@
             fetchCurrent();
             fetchNodes();
             fetchHistory();
-            
+
             // Set up polling
             setInterval(fetchCurrent, 5000);
             setInterval(fetchNodes, 30000);
