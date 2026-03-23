@@ -6,6 +6,7 @@ Fixed: IP detection, location display, verified switching, improved scoring
 
 import asyncio
 import json
+import socket
 import subprocess
 import time
 import re
@@ -180,39 +181,40 @@ class NetworkTester:
         proxy_url = f"http://127.0.0.1:{MihomoAPI.PROXY_PORT}"
         proxies = {"http": proxy_url, "https": proxy_url}
 
-        # Try 1.1.1.1 (Cloudflare) first
+        # Try Cloudflare trace - this will show which DNS resolver we used
         try:
             resp = requests.get(
-                "http://1.1.1.1/cdn-cgi/trace",
+                "https://1.1.1.1/cdn-cgi/trace",
                 proxies=proxies,
                 timeout=5
             )
             if resp.status_code == 200:
+                text = resp.text
+                # Parse colo=xxx to see which datacenter handled the request
+                for line in text.split('\n'):
+                    if line.startswith('colo='):
+                        colo = line.split('=')[1].strip()
+                        return f"1.1.1.1 ({colo})"
                 return "1.1.1.1"
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[DNS] 1.1.1.1 trace failed: {e}")
 
-        # Try 8.8.8.8 (Google)
+        # Try Google DNS
         try:
             resp = requests.get(
-                "http://8.8.8.8/cdn-cgi/trace",
+                "https://dns.google/generate_204",
                 proxies=proxies,
                 timeout=5
             )
-            if resp.status_code == 200:
+            if resp.status_code == 204:
                 return "8.8.8.8"
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[DNS] Google DNS check failed: {e}")
 
-        # Try 1.0.0.1 (Cloudflare secondary)
+        # Fallback - try to resolve a known domain
         try:
-            resp = requests.get(
-                "http://1.0.0.1/cdn-cgi/trace",
-                proxies=proxies,
-                timeout=5
-            )
-            if resp.status_code == 200:
-                return "1.0.0.1"
+            socket.getaddrinfo("cloudflare.com", 443)
+            return "resolved"
         except Exception:
             pass
 
