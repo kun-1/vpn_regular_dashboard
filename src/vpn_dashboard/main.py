@@ -62,6 +62,7 @@ class NodeMetrics:
     stability_score: float
     alive: bool
     overall_score: float
+    dns_ms: Optional[float] = None  # DNS resolution time in ms
     ip_info: Optional[IPInfo] = None
     history: List[Dict] = field(default_factory=list)
     
@@ -128,46 +129,84 @@ class NetworkTester:
     def test_bandwidth() -> Optional[float]:
         """Test bandwidth using fast download test (3-5 seconds)"""
         import time
-        
-        # Test URLs - fast, reliable CDN files
+
+        # Test URLs - fast, reliable CDN files (multiple fallbacks)
         test_urls = [
-            "http://speedtest.tele2.net/10MB.zip",  # 10MB file
-            "http://speedtest.tele2.net/5MB.zip",   # 5MB file fallback
+            "http://speedtest.tele2.net/10MB.zip",
+            "http://speedtest.tele2.net/5MB.zip",
+            "http://proof.ovh.net/files/10Mb.dat",
+            "http://ipv4.download.thinkbroadband.com/10MB.zip",
         ]
-        
+
         proxy_url = f"http://127.0.0.1:{MihomoAPI.PROXY_PORT}"
         proxies = {"http": proxy_url, "https": proxy_url}
-        
+
         for url in test_urls:
             try:
                 start_time = time.time()
                 # Download for max 5 seconds
                 resp = requests.get(
-                    url, 
-                    proxies=proxies, 
+                    url,
+                    proxies=proxies,
                     timeout=6,
                     stream=True
                 )
-                
+
                 downloaded = 0
                 for chunk in resp.iter_content(chunk_size=8192):
                     downloaded += len(chunk)
                     elapsed = time.time() - start_time
                     if elapsed > 5:  # Stop after 5 seconds
                         break
-                
+
                 elapsed = time.time() - start_time
                 if elapsed > 0 and downloaded > 100000:  # At least 100KB
                     # Calculate Mbps
                     mbps = (downloaded * 8) / (elapsed * 1000000)
                     return round(mbps, 1)
-                    
+
             except Exception as e:
                 print(f"[Bandwidth] Test failed for {url}: {e}")
                 continue
-        
+
         return None
     
+    @staticmethod
+    def test_dns(domain: str = "google.com", timeout: int = 5) -> Optional[float]:
+        """Test DNS resolution time through proxy in milliseconds"""
+        import socket
+        proxy_url = f"http://127.0.0.1:{MihomoAPI.PROXY_PORT}"
+        proxies = {"http": proxy_url, "https": proxy_url}
+
+        test_domains = [
+            "google.com",
+            "cloudflare.com",
+            "amazon.com",
+        ]
+
+        if domain not in test_domains:
+            test_domains.insert(0, domain)
+
+        for test_domain in test_domains:
+            try:
+                start_time = time.time()
+                # Use requests to resolve DNS through proxy
+                # We use a HEAD request which is lightweight
+                resp = requests.head(
+                    f"http://{test_domain}",
+                    proxies=proxies,
+                    timeout=timeout,
+                    allow_redirects=True
+                )
+                elapsed = (time.time() - start_time) * 1000  # Convert to ms
+                if elapsed < timeout * 1000:
+                    return round(elapsed, 1)
+            except Exception as e:
+                print(f"[DNS] Test failed for {test_domain}: {e}")
+                continue
+
+        return None
+
     @staticmethod
     def ping_test(target: str = "8.8.8.8", count: int = 5) -> tuple:
         """Run ping test and return (delay_ms, packet_loss, jitter_ms)"""
@@ -613,6 +652,11 @@ class VPNSwitcher:
         bandwidth = None
         if test_bandwidth and node_name == self.current_node:
             bandwidth = NetworkTester.test_bandwidth()
+
+        # Test DNS for current node only
+        dns_ms = None
+        if node_name == self.current_node:
+            dns_ms = NetworkTester.test_dns()
         
         # Calculate scores - IMPROVED ALGORITHM
         # Higher weight on delay (user experience)
@@ -651,6 +695,7 @@ class VPNSwitcher:
             stability_score=stability_score,
             alive=alive,
             overall_score=overall_score,
+            dns_ms=dns_ms,
             ip_info=ip_info,
             history=history
         )
@@ -940,6 +985,7 @@ async def current():
             "packet_loss": packet_loss,
             "jitter": jitter,
             "bandwidth": cached.bandwidth_mbps if cached else None,
+            "dns": cached.dns_ms if cached else None,
             "score": score,
             "status": status
         },
@@ -971,6 +1017,7 @@ async def nodes():
             "packet_loss": node.packet_loss,
             "jitter_ms": node.jitter_ms,
             "bandwidth_mbps": node.bandwidth_mbps,
+            "dns_ms": node.dns_ms,
             "score": node.overall_score,
             "status": node.status,
             "alive": node.alive,
@@ -1100,10 +1147,30 @@ async def startup_event():
                     metrics.bandwidth_mbps = bandwidth
                     print(f"[Bandwidth] {current_node}: {bandwidth:.1f} Mbps")
                 else:
-                    print(f"[Bandwidth] Test failed")
+                    print(f"[Bandwidth] Test failed (proxy may not be accessible)")
             await asyncio.sleep(30)  # Test every 30 seconds
-    
+
     asyncio.create_task(bandwidth_test_loop())
+
+    # Start DNS test loop (every 60 seconds for current node)
+    async def dns_test_loop():
+        await asyncio.sleep(45)  # Wait 45s after startup
+        while True:
+            current_node = switcher.get_current_node()
+            if current_node and current_node in switcher.node_metrics:
+                print(f"[DNS] Testing current node: {current_node}")
+                dns_ms = await asyncio.get_event_loop().run_in_executor(
+                    None, NetworkTester.test_dns
+                )
+                if dns_ms:
+                    metrics = switcher.node_metrics[current_node]
+                    metrics.dns_ms = dns_ms
+                    print(f"[DNS] {current_node}: {dns_ms:.0f} ms")
+                else:
+                    print(f"[DNS] Test failed")
+            await asyncio.sleep(60)  # Test every 60 seconds
+
+    asyncio.create_task(dns_test_loop())
     
     # Smart trigger: immediate re-eval on bad conditions
     async def smart_trigger_loop():

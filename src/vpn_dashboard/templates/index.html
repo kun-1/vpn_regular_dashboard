@@ -69,6 +69,11 @@
                             <span class="metric-unit">Mbps</span>
                             <span class="metric-label">带宽</span>
                         </div>
+                        <div class="metric-card" id="metric-dns">
+                            <span class="metric-value" id="current-dns">--</span>
+                            <span class="metric-unit">ms</span>
+                            <span class="metric-label">DNS</span>
+                        </div>
                         <div class="metric-card score" id="metric-score">
                             <span class="metric-value" id="current-score">--</span>
                             <span class="metric-label">评分</span>
@@ -118,6 +123,7 @@
                                 <th>延迟</th>
                                 <th>丢包</th>
                                 <th>抖动</th>
+                                <th>DNS</th>
                                 <th>评分</th>
                                 <th>状态</th>
                                 <th>操作</th>
@@ -211,6 +217,7 @@
                 document.getElementById('current-loss').textContent = metrics.packet_loss !== undefined ? metrics.packet_loss.toFixed(1) : '--';
                 document.getElementById('current-jitter').textContent = metrics.jitter !== undefined ? metrics.jitter.toFixed(1) : '--';
                 document.getElementById('current-bandwidth').textContent = metrics.bandwidth !== undefined && metrics.bandwidth !== null ? metrics.bandwidth.toFixed(1) : '--';
+                document.getElementById('current-dns').textContent = metrics.dns !== undefined && metrics.dns !== null ? metrics.dns.toFixed(0) : '--';
                 document.getElementById('current-score').textContent = metrics.score !== undefined ? metrics.score.toFixed(0) : '--';
                 
                 // Update status
@@ -252,7 +259,7 @@
                 if (data.status === "evaluating" || !data.nodes || data.nodes.length === 0) {
                     tbody.innerHTML = `
                         <tr class="loading-row">
-                            <td colspan="8">
+                            <td colspan="9">
                                 <div class="loading-spinner"></div>
                                 <span>${data.message || '正在评估所有节点...'}</span>
                             </td>
@@ -280,6 +287,7 @@
                             <td class="metric-cell ${node.delay_ms < 100 ? 'good' : node.delay_ms < 300 ? 'warning' : 'bad'}">${node.delay_ms.toFixed(0)} ms</td>
                             <td class="metric-cell ${node.packet_loss < 1 ? 'good' : node.packet_loss < 5 ? 'warning' : 'bad'}">${node.packet_loss.toFixed(1)}%</td>
                             <td class="metric-cell ${node.jitter_ms < 20 ? 'good' : node.jitter_ms < 50 ? 'warning' : 'bad'}">${node.jitter_ms.toFixed(1)} ms</td>
+                            <td class="metric-cell ${node.dns_ms ? (node.dns_ms < 50 ? 'good' : node.dns_ms < 150 ? 'warning' : 'bad') : ''}">${node.dns_ms ? node.dns_ms.toFixed(0) + ' ms' : '--'}</td>
                             <td class="score-cell">${node.score.toFixed(0)}</td>
                             <td class="status-cell"><span class="status-badge ${statusClass}">${statusText}</span></td>
                             <td class="action-cell">
