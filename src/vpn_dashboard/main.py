@@ -633,7 +633,7 @@ class VPNSwitcher:
         proxy_url = f"http://127.0.0.1:{self.proxy_port}"
         return IPDetector.get_current_ip(proxy_url)
     
-    def evaluate_node(self, node_name: str, test_bandwidth: bool = False) -> NodeMetrics:
+    def evaluate_node(self, node_name: str) -> NodeMetrics:
         """Evaluate a single node comprehensively"""
         # Test delay via API
         delay = MihomoAPI.test_node_delay(node_name)
@@ -654,15 +654,12 @@ class VPNSwitcher:
         else:
             ip_info = self.node_ip_cache.get(node_name)
         
-        # Test bandwidth only for current node (very slow)
+        # Test bandwidth for all nodes (fast test, just 3 seconds)
         bandwidth = None
-        if test_bandwidth and node_name == self.current_node:
-            bandwidth = NetworkTester.test_bandwidth()
+        bandwidth = NetworkTester.test_bandwidth()
 
-        # Test DNS for current node only
-        dns_ms = None
-        if node_name == self.current_node:
-            dns_ms = NetworkTester.test_dns()
+        # Test DNS for all nodes (it's fast)
+        dns_ms = NetworkTester.test_dns()
         
         # Calculate scores - IMPROVED ALGORITHM
         # Higher weight on delay (user experience)
@@ -789,19 +786,18 @@ class VPNSwitcher:
         print(f"[Eval] Total unique nodes from {len(self.proxy_groups)} groups: {len(nodes)}")
         
         # Evaluate in parallel with semaphore
-        semaphore = asyncio.Semaphore(3)  # Reduced from 5 to be gentler
+        semaphore = asyncio.Semaphore(10)  # Test 10 nodes in parallel
         
         async def evaluate_with_limit(node_name: str):
             async with semaphore:
                 loop = asyncio.get_event_loop()
-                # Only test bandwidth for current node (very slow)
-                test_bw = node_name == self.current_node
-                metrics = await loop.run_in_executor(None, self.evaluate_node, node_name, test_bw)
+                metrics = await loop.run_in_executor(None, self.evaluate_node, node_name)
                 self._update_history(node_name, metrics)
                 self.node_metrics[node_name] = metrics
                 ip_str = metrics.ip_info.location_str if metrics.ip_info else "no IP"
                 bw_str = f"{metrics.bandwidth_mbps:.1f}Mbps" if metrics.bandwidth_mbps else "no BW"
-                print(f"[Eval] {node_name}: delay={metrics.delay_ms:.0f}ms, {ip_str}, {bw_str}, score={metrics.overall_score:.1f}")
+                dns_str = f"{metrics.dns_ms:.0f}ms" if metrics.dns_ms else "no DNS"
+                print(f"[Eval] {node_name}: delay={metrics.delay_ms:.0f}ms, {ip_str}, {bw_str}, DNS={dns_str}, score={metrics.overall_score:.1f}")
                 return node_name
         
         await asyncio.gather(*[evaluate_with_limit(n) for n in nodes])
