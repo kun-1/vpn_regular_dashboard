@@ -34,53 +34,67 @@
                     <span class="last-switch" id="last-switch">--</span>
                 </div>
                 <div class="panel-body">
-                    <div class="hero-connection">
-                        <div class="location-display">
-                            <span class="location-flag" id="current-flag">🌐</span>
-                            <div class="location-info">
-                                <div class="location-city" id="current-location">检测中...</div>
-                                <div class="location-ip" id="current-ip">--</div>
+                    <!-- Hero Connection Card -->
+                    <div class="connection-hero">
+                        <div class="hero-flag-container">
+                            <span class="hero-flag" id="current-flag">🌐</span>
+                            <div class="hero-status-dot" id="hero-status-dot"></div>
+                        </div>
+                        <div class="hero-info">
+                            <div class="hero-location" id="current-location">检测中...</div>
+                            <div class="hero-meta">
+                                <span class="hero-ip" id="current-ip">--</span>
+                                <span class="hero-sep">•</span>
+                                <span class="hero-node" id="current-node-name">--</span>
                             </div>
                         </div>
-                        <div class="node-display">
-                            <span class="node-label">节点</span>
-                            <span class="node-value" id="current-node-name">--</span>
+                        <div class="hero-score" id="hero-score-container">
+                            <span class="score-value" id="current-score">--</span>
+                            <span class="score-label">评分</span>
                         </div>
                     </div>
 
-                    <div class="metrics-grid">
-                        <div class="metric-card" id="metric-delay">
-                            <span class="metric-value" id="current-delay">--</span>
-                            <span class="metric-unit">ms</span>
+                    <!-- Metrics Row -->
+                    <div class="metrics-row">
+                        <div class="metric-item" id="metric-delay">
+                            <div class="metric-icon delay-icon"></div>
+                            <div class="metric-data">
+                                <span class="metric-value" id="current-delay">--</span>
+                                <span class="metric-unit">ms</span>
+                            </div>
                             <span class="metric-label">延迟</span>
                         </div>
-                        <div class="metric-card" id="metric-loss">
-                            <span class="metric-value" id="current-loss">--</span>
-                            <span class="metric-unit">%</span>
+                        <div class="metric-item" id="metric-loss">
+                            <div class="metric-icon loss-icon"></div>
+                            <div class="metric-data">
+                                <span class="metric-value" id="current-loss">--</span>
+                                <span class="metric-unit">%</span>
+                            </div>
                             <span class="metric-label">丢包</span>
                         </div>
-                        <div class="metric-card" id="metric-jitter">
-                            <span class="metric-value" id="current-jitter">--</span>
-                            <span class="metric-unit">ms</span>
+                        <div class="metric-item" id="metric-jitter">
+                            <div class="metric-icon jitter-icon"></div>
+                            <div class="metric-data">
+                                <span class="metric-value" id="current-jitter">--</span>
+                                <span class="metric-unit">ms</span>
+                            </div>
                             <span class="metric-label">抖动</span>
                         </div>
-                        <div class="metric-card" id="metric-bandwidth">
-                            <span class="metric-value" id="current-bandwidth">--</span>
-                            <span class="metric-unit">Mbps</span>
+                        <div class="metric-item" id="metric-bandwidth">
+                            <div class="metric-icon bandwidth-icon"></div>
+                            <div class="metric-data">
+                                <span class="metric-value" id="current-bandwidth">--</span>
+                                <span class="metric-unit">Mbps</span>
+                            </div>
                             <span class="metric-label">带宽</span>
                         </div>
-                        <div class="metric-card" id="metric-dns">
-                            <span class="metric-value" id="current-dns">--</span>
+                        <div class="metric-item" id="metric-dns">
+                            <div class="metric-icon dns-icon"></div>
+                            <div class="metric-data">
+                                <span class="metric-value dns-value" id="current-dns">--</span>
+                            </div>
                             <span class="metric-label">DNS</span>
                         </div>
-                        <div class="metric-card score" id="metric-score">
-                            <span class="metric-value" id="current-score">--</span>
-                            <span class="metric-label">评分</span>
-                        </div>
-                    </div>
-
-                    <div class="status-bar" id="current-status-bar">
-                        <span class="status-indicator" id="current-status">评估中...</span>
                     </div>
                 </div>
             </div>
@@ -234,24 +248,14 @@
                 document.getElementById('current-dns').textContent = metrics.dns !== undefined && metrics.dns !== null ? metrics.dns : '--';
                 document.getElementById('current-score').textContent = metrics.score !== undefined ? metrics.score.toFixed(0) : '--';
 
-                // Update status
-                const statusEl = document.getElementById('current-status');
-                const statusBar = document.getElementById('current-status-bar');
-                statusBar.className = 'status-bar ' + metrics.status;
-
-                const statusText = {
-                    'good': '● 连接优秀',
-                    'warning': '● 连接一般',
-                    'bad': '● 连接较差',
-                    'evaluating': '● 评估中...'
-                };
-                statusEl.textContent = statusText[metrics.status] || '● 未知';
+                // Update hero status dot
+                const statusDot = document.getElementById('hero-status-dot');
+                statusDot.className = 'hero-status-dot ' + (metrics.status || '');
 
                 // Update metric cards
                 updateMetricCard('metric-delay', metrics.delay, 100, 300);
                 updateMetricCard('metric-loss', metrics.packet_loss, 1, 5);
                 updateMetricCard('metric-jitter', metrics.jitter, 20, 50);
-                document.getElementById('metric-score').className = 'metric-card score ' + (metrics.status || '');
 
                 // Update auto badge
                 const autoBadge = document.getElementById('auto-status');
@@ -274,15 +278,15 @@
         function updateMetricCard(id, value, goodThreshold, badThreshold) {
             const card = document.getElementById(id);
             if (value === undefined || value === null || value === '--') {
-                card.className = 'metric-card';
+                card.className = 'metric-item';
                 return;
             }
             if (value < goodThreshold) {
-                card.className = 'metric-card good';
+                card.className = 'metric-item good';
             } else if (value < badThreshold) {
-                card.className = 'metric-card warning';
+                card.className = 'metric-item warning';
             } else {
-                card.className = 'metric-card bad';
+                card.className = 'metric-item bad';
             }
         }
 
