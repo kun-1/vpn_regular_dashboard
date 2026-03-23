@@ -175,57 +175,48 @@ class NetworkTester:
         return None
     
     @staticmethod
-    def test_dns() -> Optional[str]:
-        """Get the DNS server address being used through proxy"""
-        # Try to detect DNS server via Cloudflare's trace endpoint
-        # This endpoint returns which colo the request went through
+    def test_dns() -> str:
+        """Detect which DNS server is being used through proxy"""
         proxy_url = f"http://127.0.0.1:{MihomoAPI.PROXY_PORT}"
         proxies = {"http": proxy_url, "https": proxy_url}
 
+        # Try 1.1.1.1 (Cloudflare) first
         try:
-            # Use Cloudflare trace to detect DNS server
             resp = requests.get(
-                "https://dns.cloudflare.com/cdn-cgi/trace",
+                "http://1.1.1.1/cdn-cgi/trace",
                 proxies=proxies,
                 timeout=5
             )
             if resp.status_code == 200:
-                data = resp.text
-                # Parse colo=xxx (Cloudflare datacenter)
-                for line in data.split('\n'):
-                    if line.startswith('colo='):
-                        colo = line.split('=')[1].strip()
-                        # colo is the datacenter, not the DNS server IP
-                        # But we can use this to indicate clean DNS is working
-                        return f"Cloudflare ({colo})"
-        except Exception as e:
-            print(f"[DNS] Cloudflare trace failed: {e}")
-
-        # Fallback: try Google DNS to check connectivity
-        try:
-            resp = requests.get(
-                "https://ip.google.com/generate_204",
-                proxies=proxies,
-                timeout=5
-            )
-            if resp.status_code == 204 or resp.status_code == 200:
-                return "Google DNS"
-        except Exception as e:
-            print(f"[DNS] Google check failed: {e}")
-
-        # Fallback: try OpenDNS check
-        try:
-            resp = requests.get(
-                "http://myip.dnsomatic.com/",
-                proxies=proxies,
-                timeout=5
-            )
-            if resp.status_code == 200:
-                return "OpenDNS"
+                return "1.1.1.1"
         except Exception:
             pass
 
-        return None
+        # Try 8.8.8.8 (Google)
+        try:
+            resp = requests.get(
+                "http://8.8.8.8/cdn-cgi/trace",
+                proxies=proxies,
+                timeout=5
+            )
+            if resp.status_code == 200:
+                return "8.8.8.8"
+        except Exception:
+            pass
+
+        # Try 1.0.0.1 (Cloudflare secondary)
+        try:
+            resp = requests.get(
+                "http://1.0.0.1/cdn-cgi/trace",
+                proxies=proxies,
+                timeout=5
+            )
+            if resp.status_code == 200:
+                return "1.0.0.1"
+        except Exception:
+            pass
+
+        return "unknown"
 
     @staticmethod
     def ping_test(target: str = "8.8.8.8", count: int = 5) -> tuple:
