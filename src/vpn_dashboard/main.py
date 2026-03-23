@@ -200,7 +200,7 @@ class NetworkTester:
         try:
             # Use dig command to measure DNS query time to specific resolver
             result = subprocess.run(
-                ["dig", @"@{}".format(resolver), test_domain, "+short", "+time={}".format(timeout), "+tries=1"],
+                ["dig", f"@{resolver}", test_domain, "+short", "+time={}".format(timeout), "+tries=1"],
                 capture_output=True, text=True, timeout=timeout + 2
             )
 
@@ -208,7 +208,7 @@ class NetworkTester:
                 # dig returns the IP on success, query time is in the stats
                 # Run again with +stats to get query time
                 result2 = subprocess.run(
-                    ["dig", "@{}".format(resolver), test_domain, "+stats", "+noedns", "+time={}".format(timeout), "+tries=1"],
+                    ["dig", f"@{resolver}", test_domain, "+stats", "+noedns", "+time={}".format(timeout), "+tries=1"],
                     capture_output=True, text=True, timeout=timeout + 2
                 )
 
