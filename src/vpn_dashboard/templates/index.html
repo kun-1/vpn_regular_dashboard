@@ -122,6 +122,7 @@
                                 <th>丢包</th>
                                 <th>抖动</th>
                                 <th>DNS</th>
+                                <th>带宽</th>
                                 <th>评分</th>
                                 <th>状态</th>
                                 <th>操作</th>
@@ -297,7 +298,7 @@
                 if (data.status === "evaluating" || !data.nodes || data.nodes.length === 0) {
                     tbody.innerHTML = `
                         <tr class="loading-row">
-                            <td colspan="8">
+                            <td colspan="9">
                                 <div class="loading-spinner"></div>
                                 <span>${data.message || '正在评估所有节点...'}</span>
                             </td>
@@ -324,6 +325,7 @@
                             <td class="metric-cell ${node.packet_loss < 1 ? 'good' : node.packet_loss < 5 ? 'warning' : 'bad'}">${node.packet_loss.toFixed(1)}%</td>
                             <td class="metric-cell ${node.jitter_ms < 20 ? 'good' : node.jitter_ms < 50 ? 'warning' : 'bad'}">${node.jitter_ms.toFixed(1)} ms</td>
                             <td class="metric-cell">${node.dns_server || '--'}</td>
+                            <td class="metric-cell ${node.bandwidth_mbps ? (node.bandwidth_mbps > 50 ? 'good' : node.bandwidth_mbps > 20 ? 'warning' : 'bad') : ''}">${node.bandwidth_mbps ? node.bandwidth_mbps.toFixed(1) + ' Mbps' : '--'}</td>
                             <td class="score-cell">${node.score.toFixed(0)}</td>
                             <td class="status-cell"><span class="status-badge ${statusClass}">${statusText}</span></td>
                             <td class="action-cell">
