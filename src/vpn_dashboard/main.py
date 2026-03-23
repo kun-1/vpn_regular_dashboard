@@ -666,29 +666,31 @@ class VPNSwitcher:
         # Test DNS for all nodes (check which DNS server is used)
         dns_server = NetworkTester.test_dns()
         
-        # Calculate scores - IMPROVED ALGORITHM
-        # Higher weight on delay (user experience)
-        delay_score = max(0, 100 - final_delay / 3) if alive else 0  # Was /5, now /3
-        loss_score = max(0, 100 - packet_loss * 20)  # Was *10, stricter
-        jitter_score = max(0, 100 - jitter)  # Was /2, now direct
-        
+        # Calculate scores - ADJUSTED
+        delay_score = max(0, 100 - final_delay / 3) if alive else 0
+        loss_score = max(0, 100 - packet_loss * 20)
+        jitter_score = max(0, 100 - jitter)
+
         # Stability score based on history
         stability_score = self._calculate_stability(node_name, alive)
-        
-        # NEW: Geographic score (prefer certain regions)
+
+        # Geographic score (prefer certain regions)
         geo_score = self._calculate_geo_score(ip_info)
-        
-        # Bandwidth score (only if tested)
-        bandwidth_score = min(100, bandwidth * 2) if bandwidth else 50
-        
-        # Weighted overall score - IMPROVED
+
+        # Bandwidth score - IMPROVED: 40Mbps = 100分, 失败给30分惩罚
+        if bandwidth:
+            bandwidth_score = min(100, bandwidth * 2.5)
+        else:
+            bandwidth_score = 30  # 测试失败惩罚
+
+        # Weighted overall score - ADJUSTED
         overall_score = (
-            0.35 * delay_score +      # Was 0.40
-            0.20 * loss_score +       
-            0.15 * jitter_score +     
-            0.15 * stability_score +  
-            0.10 * geo_score +        
-            0.05 * bandwidth_score    # NEW: bandwidth (small weight)
+            0.30 * delay_score +      # 30%
+            0.20 * loss_score +       # 20%
+            0.15 * jitter_score +     # 15%
+            0.10 * stability_score +  # 10%
+            0.10 * geo_score +        # 10%
+            0.15 * bandwidth_score    # 15% (原5%)
         )
         
         # Get history for this node
@@ -823,64 +825,54 @@ class VPNSwitcher:
         self._evaluating = False
     
     def should_switch(self) -> tuple[bool, str, str]:
-        """Smart switching logic for web browsing/video streaming"""
+        """Simple switching logic - switch if current node is significantly worse"""
         if not self.auto_switch_enabled:
             return (False, "", "auto mode disabled")
-        
-        # Check cooldown (handle initial state where last_switch_time is 0)
+
+        # Check cooldown
         time_since_switch = time.time() - self.last_switch_time if self.last_switch_time > 0 else self.switch_cooldown + 1
         if time_since_switch < self.switch_cooldown:
-            remaining = int(self.switch_cooldown - time_since_switch)
-            return (False, "", f"cooldown: {remaining}s remaining")
-        
+            return (False, "", f"cooldown: {int(self.switch_cooldown - time_since_switch)}s")
+
         if not self.node_metrics:
             return (False, "", "no metrics available")
-        
-        # Find best node
+
+        # Find best alive node
         alive_nodes = [(n, m) for n, m in self.node_metrics.items() if m.alive]
         if not alive_nodes:
             return (False, "", "no alive nodes")
-        
+
         best_node = max(alive_nodes, key=lambda x: x[1].overall_score)
         best_name, best_metrics = best_node
-        
+
         current = self.node_metrics.get(self.current_node)
         if not current:
             if best_metrics.overall_score > 50:
-                return (True, best_name, "current node not evaluated")
-            return (False, "", "current node not evaluated, best score too low")
-        
-        # === Smart Switching Logic ===
-        
-        # Rule 1: Current node is dead -> switch immediately
+                return (True, best_name, "current not evaluated")
+            return (False, "", "current not evaluated, best score too low")
+
+        # Rule 1: Current is dead -> switch
         if not current.alive:
-            return (True, best_name, "current node dead")
-        
-        # Rule 2: Current node high latency (>500ms) and better option exists
-        if current.delay_ms > 500 and best_metrics.delay_ms < current.delay_ms * 0.7:
-            return (True, best_name, f"high latency: {current.delay_ms:.0f}ms → {best_metrics.delay_ms:.0f}ms")
-        
-        # Rule 3: Current node has packet loss and better option is clean
-        if current.packet_loss > 2 and best_metrics.packet_loss < 0.5:
-            return (True, best_name, f"packet loss: {current.packet_loss:.1f}% → {best_metrics.packet_loss:.1f}%")
-        
-        # Rule 4: Smart score comparison with context
-        # Don't switch if current is already good (<150ms)
-        if current.delay_ms < 150:
-            return (False, "", f"current good enough: {current.delay_ms:.0f}ms")
-        
-        # Switch if significant improvement considering current state
+            return (True, best_name, "current dead")
+
+        # Rule 2: Current delay >300ms and best is faster -> switch
+        if current.delay_ms > 300 and best_metrics.delay_ms < current.delay_ms:
+            return (True, best_name, f"high delay: {current.delay_ms:.0f}ms → {best_metrics.delay_ms:.0f}ms")
+
+        # Rule 3: Current delay >200ms and best is 20%+ faster -> switch
+        if current.delay_ms > 200 and best_metrics.delay_ms < current.delay_ms * 0.8:
+            return (True, best_name, f"delay: {current.delay_ms:.0f}ms → {best_metrics.delay_ms:.0f}ms")
+
+        # Rule 4: Current packet loss >5% -> switch
+        if current.packet_loss > 5 and best_metrics.packet_loss < current.packet_loss:
+            return (True, best_name, f"loss: {current.packet_loss:.1f}% → {best_metrics.packet_loss:.1f}%")
+
+        # Rule 5: Overall score is significantly better -> switch
         score_diff = best_metrics.overall_score - current.overall_score
-        
-        # If current is mediocre (150-300ms), need >10 improvement
-        if 150 <= current.delay_ms < 300 and score_diff > 10:
-            return (True, best_name, f"mediocre→good: {score_diff:.1f}pts")
-        
-        # If current is bad (>300ms), need >5 improvement
-        if current.delay_ms >= 300 and score_diff > 5:
-            return (True, best_name, f"bad→better: {score_diff:.1f}pts")
-        
-        return (False, "", f"no need: {current.delay_ms:.0f}ms, diff:{score_diff:.1f}")
+        if score_diff > 10:
+            return (True, best_name, f"score: {current.overall_score:.0f} → {best_metrics.overall_score:.0f} (+{score_diff:.0f})")
+
+        return (False, "", f"no switch needed: {current.delay_ms:.0f}ms, best {best_metrics.delay_ms:.0f}ms")
     
     def switch_to_node(self, node_name: str) -> tuple[bool, str]:
         """Switch to specified node with verification"""
